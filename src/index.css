@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #faf7f2;
+  --surface: #ffffff;
+  --surface-muted: #f3eee6;
+  --primary: #e87516;
+  --primary-hover: #d4650f;
+  --primary-dark: #c55a0c;
+  --secondary: #ffb52e;
+  --secondary-hover: #e9a320;
+  --foreground: #171717;
+  --muted: #6b7280;
+  --border: #e6e0d6;
+  --ring: #e87516;
+  --on-primary: #ffffff;
+  --on-secondary: #171717;
+}
+
+.dark {
+  --background: #111111;
+  --surface: #242424;
+  --surface-muted: #1a1a1a;
+  --primary: #f28c28;
+  --primary-hover: #ff9d3d;
+  --primary-dark: #e07a18;
+  --secondary: #ffb52e;
+  --secondary-hover: #ffc24d;
+  --foreground: #ffffff;
+  --muted: #8a8f98;
+  --border: #3a3a3a;
+  --ring: #f28c28;
+  --on-primary: #ffffff;
+  --on-secondary: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary);
+  --color-accent: var(--secondary);
+  --color-accent-hover: var(--secondary-hover);
+  --color-accent-dark: var(--secondary-hover);
+  --color-brand-gold: var(--secondary);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-on-primary: var(--on-primary);
+  --color-on-secondary: var(--on-secondary);
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+input,
+textarea,
+select {
+  color: var(--foreground);
+  background-color: var(--surface);
+}

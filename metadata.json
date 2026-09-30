@@ -1,0 +1,6 @@
+{
+  "name": "TigerAirlines - Airline Booking System",
+  "description": "Book flights, explore international destinations, manage reservations and manage airline operations with TigerAirlines customer and admin dashboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
