@@ -11,11 +11,13 @@ const getInitialAuthState = () => {
         isAdmin: false,
         token: null,
         loading: false,
-        error: null
+        error: null,
       };
     }
     const savedUserRaw = localStorage.getItem("tiger_auth_user");
-    const token = localStorage.getItem("tiger_auth_token") || localStorage.getItem("tiger_token");
+    const token =
+      localStorage.getItem("tiger_auth_token") ||
+      localStorage.getItem("tiger_token");
     if (savedUserRaw && token) {
       const user = JSON.parse(savedUserRaw);
       const role = user.role || "CUSTOMER";
@@ -27,7 +29,7 @@ const getInitialAuthState = () => {
         isAdmin,
         token,
         loading: false,
-        error: null
+        error: null,
       };
     }
     return {
@@ -37,7 +39,7 @@ const getInitialAuthState = () => {
       isAdmin: false,
       token: null,
       loading: false,
-      error: null
+      error: null,
     };
   } catch {
     return {
@@ -47,7 +49,7 @@ const getInitialAuthState = () => {
       isAdmin: false,
       token: null,
       loading: false,
-      error: null
+      error: null,
     };
   }
 };
@@ -61,14 +63,18 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.isAuthenticated = true;
       state.role = action.payload.user.role;
-      state.isAdmin = action.payload.user.role === "ADMINISTRATOR" || action.payload.user.role === "STAFF";
+      state.isAdmin =
+        action.payload.user.role === "ADMINISTRATOR" ||
+        action.payload.user.role === "STAFF";
       state.error = null;
       try {
         localStorage.removeItem("tiger_logged_out");
-        localStorage.setItem("tiger_auth_user", JSON.stringify(action.payload.user));
+        localStorage.setItem(
+          "tiger_auth_user",
+          JSON.stringify(action.payload.user),
+        );
         localStorage.setItem("tiger_auth_token", action.payload.token);
-      } catch (e) {
-      }
+      } catch (e) {}
     },
     logout: (state) => {
       state.user = null;
@@ -81,28 +87,23 @@ const authSlice = createSlice({
         localStorage.setItem("tiger_logged_out", "true");
         localStorage.removeItem("tiger_auth_user");
         localStorage.removeItem("tiger_auth_token");
-      } catch (e) {
-      }
+      } catch (e) {}
     },
     setAdminMode: (state, action) => {
       if (action.payload) {
         state.user = {
-          id: "admin-1",
-          name: "Captain Soliat T.",
-          email: "admin.ops@tigerairlines.ng",
+          ...state.user,
           role: "ADMINISTRATOR",
-          avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80"
         };
-        state.isAuthenticated = true;
+        state.isAuthenticated = Boolean(state.user);
         state.role = "ADMINISTRATOR";
         state.isAdmin = true;
-        state.token = "mock-jwt-admin-tiger-9988";
         try {
           localStorage.removeItem("tiger_logged_out");
-          localStorage.setItem("tiger_auth_user", JSON.stringify(state.user));
-          localStorage.setItem("tiger_auth_token", state.token);
-        } catch {
-        }
+          if (state.user) {
+            localStorage.setItem("tiger_auth_user", JSON.stringify(state.user));
+          }
+        } catch {}
       } else {
         state.user = null;
         state.isAuthenticated = false;
@@ -112,8 +113,7 @@ const authSlice = createSlice({
         try {
           localStorage.removeItem("tiger_auth_user");
           localStorage.removeItem("tiger_auth_token");
-        } catch {
-        }
+        } catch {}
       }
     },
     setError: (state, action) => {
@@ -122,10 +122,11 @@ const authSlice = createSlice({
     },
     setLoading: (state, action) => {
       state.loading = action.payload;
-    }
-  }
+    },
+  },
 });
-const { loginSuccess, logout, setAdminMode, setError, setLoading } = authSlice.actions;
+const { loginSuccess, logout, setAdminMode, setError, setLoading } =
+  authSlice.actions;
 var stdin_default = authSlice.reducer;
 export {
   authSlice,
@@ -134,5 +135,5 @@ export {
   logout,
   setAdminMode,
   setError,
-  setLoading
+  setLoading,
 };

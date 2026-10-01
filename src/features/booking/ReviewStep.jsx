@@ -11,37 +11,47 @@ const ReviewStep = () => {
   const passengers = useAppSelector((state) => state.booking.passengers);
   const selectedSeats = useAppSelector((state) => state.booking.selectedSeats);
   const extras = useAppSelector((state) => state.booking.extras);
-  const cabinClass = useAppSelector((state) => state.booking.searchParams.cabinClass);
-  const basePrice = flight ? cabinClass === "Business" ? flight.priceBusiness : flight.priceEconomy : 45e3;
-  const baggageCost = extras.baggageKg === 30 ? 1e4 : extras.baggageKg === 40 ? 18e3 : 0;
+  const cabinClass = useAppSelector(
+    (state) => state.booking.searchParams.cabinClass,
+  );
+  const basePrice = flight
+    ? cabinClass === "Business"
+      ? flight.priceBusiness
+      : flight.priceEconomy
+    : 45e3;
+  const baggageCost =
+    extras.baggageKg === 30 ? 1e4 : extras.baggageKg === 40 ? 18e3 : 0;
   const mealCost = extras.mealPreference === "Chef's Special" ? 4500 : 0;
   const insuranceCost = extras.travelInsurance ? 5e3 : 0;
   const priorityCost = extras.priorityBoarding ? 2500 : 0;
   const loungeCost = extras.loungeAccess ? 8e3 : 0;
-  const extrasTotal = baggageCost + mealCost + insuranceCost + priorityCost + loungeCost;
+  const extrasTotal =
+    baggageCost + mealCost + insuranceCost + priorityCost + loungeCost;
   const taxesAndFees = Math.round(basePrice * 0.075);
   const grandTotal = basePrice + extrasTotal + taxesAndFees;
   const passenger = passengers[0] || {
-    firstName: "Chukwuemeka",
-    lastName: "Obi",
-    passportNumber: "A10293847",
-    nationality: "Nigeria"
+    firstName: "",
+    lastName: "",
+    passportNumber: "",
+    nationality: "",
   };
   const handleProceedToPayment = () => {
     navigate("/payment");
   };
-  return <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-sm border border-border">
+  return (
+    <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-sm border border-border">
       <div className="mb-6 pb-4 border-b border-border">
-        <h2 className="text-xl font-black text-foreground">Review & Confirm Itinerary</h2>
+        <h2 className="text-xl font-black text-foreground">
+          Review & Confirm Itinerary
+        </h2>
         <p className="text-xs text-muted mt-1">
-          Please review your flight and passenger details before proceeding to secure payment.
+          Please review your flight and passenger details before proceeding to
+          secure payment.
         </p>
       </div>
 
       <div className="space-y-6">
-        {
-    /* Flight Summary Card */
-  }
+        {/* Flight Summary Card */}
         <div className="bg-background rounded-2xl p-5 border border-border">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -57,17 +67,23 @@ const ReviewStep = () => {
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <p className="text-2xl font-black text-foreground">{flight?.departureTime || "08:30"}</p>
+              <p className="text-2xl font-black text-foreground">
+                {flight?.departureTime || "08:30"}
+              </p>
               <p className="text-xs font-bold text-foreground mt-0.5">
-                {flight?.origin.city || "Lagos"} ({flight?.origin.code || "LOS"})
+                {flight?.origin.city || "Lagos"} ({flight?.origin.code || "LOS"}
+                )
               </p>
               <p className="text-[11px] text-muted">
-                {flight?.origin.name || "Murtala Muhammed International Airport"}
+                {flight?.origin.name ||
+                  "Murtala Muhammed International Airport"}
               </p>
             </div>
 
             <div className="text-center px-4">
-              <span className="text-xs font-semibold text-muted">{flight?.duration || "4h 15m"}</span>
+              <span className="text-xs font-semibold text-muted">
+                {flight?.duration || "4h 15m"}
+              </span>
               <div className="flex items-center gap-2 my-1">
                 <div className="w-12 border-t border-border" />
                 <Plane size={14} className="text-primary" />
@@ -79,9 +95,12 @@ const ReviewStep = () => {
             </div>
 
             <div className="sm:text-right">
-              <p className="text-2xl font-black text-foreground">{flight?.arrivalTime || "12:45"}</p>
+              <p className="text-2xl font-black text-foreground">
+                {flight?.arrivalTime || "12:45"}
+              </p>
               <p className="text-xs font-bold text-foreground mt-0.5">
-                {flight?.destination.city || "Abuja"} ({flight?.destination.code || "ABV"})
+                {flight?.destination.city || "Abuja"} (
+                {flight?.destination.code || "ABV"})
               </p>
               <p className="text-[11px] text-muted">
                 {flight?.destination.name || "Suvarnabhumi Airport"}
@@ -90,9 +109,7 @@ const ReviewStep = () => {
           </div>
         </div>
 
-        {
-    /* Passenger & Seat Card */
-  }
+        {/* Passenger & Seat Card */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="border border-border rounded-xl p-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">
@@ -133,57 +150,61 @@ const ReviewStep = () => {
           </div>
         </div>
 
-        {
-    /* Price Breakdown */
-  }
+        {/* Price Breakdown */}
         <div className="border-t border-b border-border py-4 space-y-2 text-xs">
           <div className="flex justify-between text-muted">
             <span>Airfare Base ({cabinClass})</span>
-            <span className="font-semibold text-foreground">{formatNaira(basePrice)}</span>
+            <span className="font-semibold text-foreground">
+              {formatNaira(basePrice)}
+            </span>
           </div>
-          {extrasTotal > 0 && <div className="flex justify-between text-muted">
+          {extrasTotal > 0 && (
+            <div className="flex justify-between text-muted">
               <span>Selected Travel Extras & Add-ons</span>
-              <span className="font-semibold text-foreground">+{formatNaira(extrasTotal)}</span>
-            </div>}
+              <span className="font-semibold text-foreground">
+                +{formatNaira(extrasTotal)}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between text-muted">
             <span>Airport Taxes & NCAA Passenger Service Charge (PSC)</span>
-            <span className="font-semibold text-foreground">+{formatNaira(taxesAndFees)}</span>
+            <span className="font-semibold text-foreground">
+              +{formatNaira(taxesAndFees)}
+            </span>
           </div>
           <div className="flex justify-between text-sm font-black text-foreground pt-2 border-t border-border">
             <span>Total Payable Amount</span>
-            <span className="text-xl text-primary">{formatNaira(grandTotal)}</span>
+            <span className="text-xl text-primary">
+              {formatNaira(grandTotal)}
+            </span>
           </div>
         </div>
       </div>
 
-      {
-    /* Navigation */
-  }
+      {/* Navigation */}
       <div className="flex items-center justify-between pt-6 mt-6">
         <Button
-    type="button"
-    variant="secondary"
-    onClick={() => dispatch(setBookingStep(3))}
-    className="flex items-center gap-2"
-  >
+          type="button"
+          variant="secondary"
+          onClick={() => dispatch(setBookingStep(3))}
+          className="flex items-center gap-2"
+        >
           <ArrowLeft size={16} /> Back to Extras
         </Button>
 
         <Button
-    type="button"
-    variant="accent"
-    size="lg"
-    onClick={handleProceedToPayment}
-    className="px-8 font-bold flex items-center gap-2 shadow-md hover:shadow-orange-500/25"
-  >
+          type="button"
+          variant="accent"
+          size="lg"
+          onClick={handleProceedToPayment}
+          className="px-8 font-bold flex items-center gap-2 shadow-md hover:shadow-orange-500/25"
+        >
           <span>Proceed to Payment (${grandTotal}.00)</span>
           <ArrowRight size={16} />
         </Button>
       </div>
-    </div>;
+    </div>
+  );
 };
 var stdin_default = ReviewStep;
-export {
-  ReviewStep,
-  stdin_default as default
-};
+export { ReviewStep, stdin_default as default };

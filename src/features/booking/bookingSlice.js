@@ -6,35 +6,24 @@ const initialSearchParams = {
   returnDate: "2026-10-22",
   tripType: "roundTrip",
   cabinClass: "Economy",
-  passengersCount: 1
+  passengersCount: 1,
 };
 const initialExtras = {
   baggageKg: 20,
   mealPreference: "Standard Meal",
   priorityBoarding: false,
   travelInsurance: false,
-  loungeAccess: false
+  loungeAccess: false,
 };
 const initialState = {
   searchParams: initialSearchParams,
   selectedFlight: null,
   returnFlight: null,
   currentStep: 1,
-  passengers: [
-    {
-      id: "p-1",
-      firstName: "Chukwuemeka",
-      lastName: "Obi",
-      passportNumber: "A10293847",
-      dateOfBirth: "1992-04-18",
-      nationality: "Nigeria",
-      seat: "12A",
-      ticketNumber: "075-TGR-001"
-    }
-  ],
-  selectedSeats: ["12A"],
+  passengers: [],
+  selectedSeats: [],
   extras: initialExtras,
-  confirmedBooking: null
+  confirmedBooking: null,
 };
 const bookingSlice = createSlice({
   name: "booking",
@@ -59,7 +48,7 @@ const bookingSlice = createSlice({
       if (state.passengers[action.payload.index]) {
         state.passengers[action.payload.index] = {
           ...state.passengers[action.payload.index],
-          ...action.payload.data
+          ...action.payload.data,
         };
       }
     },
@@ -83,8 +72,8 @@ const bookingSlice = createSlice({
       state.currentStep = 1;
       state.selectedSeats = ["12A"];
       state.extras = initialExtras;
-    }
-  }
+    },
+  },
 });
 const {
   setSearchParams,
@@ -96,7 +85,7 @@ const {
   setSelectedSeats,
   setExtras,
   setConfirmedBooking,
-  resetBookingFlow
+  resetBookingFlow,
 } = bookingSlice.actions;
 var stdin_default = bookingSlice.reducer;
 export {
@@ -111,5 +100,5 @@ export {
   setPassengers,
   setSearchParams,
   setSelectedSeats,
-  updatePassenger
+  updatePassenger,
 };

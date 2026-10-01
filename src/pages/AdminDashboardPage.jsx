@@ -5,7 +5,7 @@ import {
   Plane,
   TrendingUp,
   ArrowUpRight,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -20,7 +20,7 @@ const AnimatedCounter = ({
   target,
   prefix = "",
   suffix = "",
-  decimals = 0
+  decimals = 0,
 }) => {
   const spanRef = useRef(null);
   useGSAP(() => {
@@ -37,12 +37,14 @@ const AnimatedCounter = ({
             spanRef.current.innerText = `${prefix}${Math.round(obj.val).toLocaleString()}${suffix}`;
           }
         }
-      }
+      },
     });
   }, [target]);
-  return <span ref={spanRef}>
+  return (
+    <span ref={spanRef}>
       {prefix}0{suffix}
-    </span>;
+    </span>
+  );
 };
 const AdminDashboardPage = () => {
   const [stats, setStats] = useState(null);
@@ -50,13 +52,14 @@ const AdminDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const dashboardRef = useRef(null);
   useEffect(() => {
-    Promise.all([adminService.getDashboardStats(), flightService.getFlights()]).then(
-      ([statsRes, flightsRes]) => {
-        setStats(statsRes.data);
-        setRecentFlights(flightsRes.data.slice(0, 5));
-        setLoading(false);
-      }
-    );
+    Promise.all([
+      adminService.getDashboardStats(),
+      flightService.getFlights(),
+    ]).then(([statsRes, flightsRes]) => {
+      setStats(statsRes.data);
+      setRecentFlights(flightsRes.data.slice(0, 5));
+      setLoading(false);
+    });
   }, []);
   useGSAP(
     () => {
@@ -66,7 +69,7 @@ const AdminDashboardPage = () => {
           opacity: 0,
           duration: 0.38,
           stagger: 0.08,
-          ease: "power2.out"
+          ease: "power2.out",
         });
         gsap.from(".admin-chart-card", {
           y: 22,
@@ -74,17 +77,19 @@ const AdminDashboardPage = () => {
           duration: 0.45,
           stagger: 0.1,
           ease: "power2.out",
-          delay: 0.12
+          delay: 0.12,
         });
       }
     },
-    { dependencies: [loading, stats], scope: dashboardRef }
+    { dependencies: [loading, stats], scope: dashboardRef },
   );
   if (loading || !stats) {
-    return <div className="p-8 text-center">
+    return (
+      <div className="p-8 text-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
         <p className="text-xs text-muted">Loading operations analytics...</p>
-      </div>;
+      </div>
+    );
   }
   const kpis = [
     {
@@ -95,7 +100,7 @@ const AdminDashboardPage = () => {
       decimals: 0,
       change: `+${stats.kpis.revenueChangePct}%`,
       icon: <Banknote size={20} className="text-primary" />,
-      bg: "bg-primary/10"
+      bg: "bg-primary/10",
     },
     {
       title: "Confirmed Reservations",
@@ -105,7 +110,7 @@ const AdminDashboardPage = () => {
       decimals: 0,
       change: `+${stats.kpis.bookingsChangePct}%`,
       icon: <Users size={20} className="text-secondary" />,
-      bg: "bg-orange-50"
+      bg: "bg-orange-50",
     },
     {
       title: "Average Flight Occupancy",
@@ -115,7 +120,7 @@ const AdminDashboardPage = () => {
       decimals: 1,
       change: `+${stats.kpis.occupancyChangePct}%`,
       icon: <TrendingUp size={20} className="text-emerald-600" />,
-      bg: "bg-emerald-50"
+      bg: "bg-emerald-50",
     },
     {
       title: "Active Scheduled Flights",
@@ -125,23 +130,25 @@ const AdminDashboardPage = () => {
       decimals: 0,
       change: `+${stats.kpis.activeFlightsChange} routes`,
       icon: <Plane size={20} className="text-secondary" />,
-      bg: "bg-amber-50"
-    }
+      bg: "bg-amber-50",
+    },
   ];
-  return <div ref={dashboardRef} className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
-      {
-    /* KPI Cards with animated count-up numbers */
-  }
+  return (
+    <div ref={dashboardRef} className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
+      {/* KPI Cards with animated count-up numbers */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {kpis.map((kpi, idx) => <div
-    key={idx}
-    className="admin-kpi-card bg-surface rounded-2xl p-5 shadow-sm border border-border flex flex-col justify-between"
-  >
+        {kpis.map((kpi, idx) => (
+          <div
+            key={idx}
+            className="admin-kpi-card bg-surface rounded-2xl p-5 shadow-sm border border-border flex flex-col justify-between"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted uppercase tracking-wider">
                 {kpi.title}
               </span>
-              <div className={`w-9 h-9 rounded-xl ${kpi.bg} flex items-center justify-center`}>
+              <div
+                className={`w-9 h-9 rounded-xl ${kpi.bg} flex items-center justify-center`}
+              >
                 {kpi.icon}
               </div>
             </div>
@@ -149,34 +156,33 @@ const AdminDashboardPage = () => {
             <div className="mt-4">
               <div className="text-2xl font-black text-foreground tracking-tight">
                 <AnimatedCounter
-    target={kpi.targetValue}
-    prefix={kpi.prefix}
-    suffix={kpi.suffix}
-    decimals={kpi.decimals}
-  />
+                  target={kpi.targetValue}
+                  prefix={kpi.prefix}
+                  suffix={kpi.suffix}
+                  decimals={kpi.decimals}
+                />
               </div>
               <div className="flex items-center gap-1 mt-1 text-xs font-semibold text-emerald-600">
                 <ArrowUpRight size={14} />
                 <span>{kpi.change} vs last month</span>
               </div>
             </div>
-          </div>)}
+          </div>
+        ))}
       </div>
 
-      {
-    /* Charts Grid */
-  }
+      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {
-    /* Revenue Performance Chart (8 cols) */
-  }
+        {/* Revenue Performance Chart (8 cols) */}
         <div className="admin-chart-card lg:col-span-8 bg-surface p-6 rounded-2xl shadow-sm border border-border">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
                 Monthly Revenue Performance
               </h3>
-              <p className="text-xs text-muted">Actual revenue vs projected budget targets</p>
+              <p className="text-xs text-muted">
+                Actual revenue vs projected budget targets
+              </p>
             </div>
             <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md">
               FY 2026
@@ -185,40 +191,36 @@ const AdminDashboardPage = () => {
           <RevenueChart data={stats.revenueByMonth} />
         </div>
 
-        {
-    /* Route Occupancy Chart (4 cols) */
-  }
+        {/* Route Occupancy Chart (4 cols) */}
         <div className="admin-chart-card lg:col-span-4 bg-surface p-6 rounded-2xl shadow-sm border border-border">
           <div className="mb-4">
             <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
               Route Load Factor (%)
             </h3>
-            <p className="text-xs text-muted">Occupancy rate per high-demand route</p>
+            <p className="text-xs text-muted">
+              Occupancy rate per high-demand route
+            </p>
           </div>
           <OccupancyChart data={stats.occupancyByRoute} />
         </div>
       </div>
 
-      {
-    /* Bookings volume & Active flights */
-  }
+      {/* Bookings volume & Active flights */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {
-    /* Daily Bookings Chart (6 cols) */
-  }
+        {/* Daily Bookings Chart (6 cols) */}
         <div className="admin-chart-card lg:col-span-6 bg-surface p-6 rounded-2xl shadow-sm border border-border">
           <div className="mb-4">
             <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
               Weekly Booking Activity
             </h3>
-            <p className="text-xs text-muted">New reservations compared with cancellations</p>
+            <p className="text-xs text-muted">
+              New reservations compared with cancellations
+            </p>
           </div>
           <BookingsChart data={stats.dailyBookings} />
         </div>
 
-        {
-    /* Live Flights Quick Overview (6 cols) */
-  }
+        {/* Live Flights Quick Overview (6 cols) */}
         <div className="admin-chart-card lg:col-span-6 bg-surface p-6 rounded-2xl shadow-sm border border-border flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -226,57 +228,77 @@ const AdminDashboardPage = () => {
                 <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
                   Upcoming Flight Operations
                 </h3>
-                <p className="text-xs text-muted">Live operational flight status & gates</p>
+                <p className="text-xs text-muted">
+                  Live operational flight status & gates
+                </p>
               </div>
               <Link
-    to="/admin/flights"
-    className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-  >
+                to="/admin/flights"
+                className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+              >
                 <span>View All</span>
                 <ArrowRight size={13} />
               </Link>
             </div>
 
             <div className="divide-y divide-border">
-              {recentFlights.map((flight) => <div key={flight.id} className="py-3 flex items-center justify-between">
+              {recentFlights.map((flight) => (
+                <div
+                  key={flight.id}
+                  className="py-3 flex items-center justify-between"
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
                       <Plane size={15} className="-rotate-45" />
                     </div>
                     <div>
-                      <p className="font-bold text-foreground text-xs font-mono">{flight.flightNumber}</p>
+                      <p className="font-bold text-foreground text-xs font-mono">
+                        {flight.flightNumber}
+                      </p>
                       <p className="text-[11px] text-muted">
-                        {flight.origin.code} → {flight.destination.code} ({flight.aircraft})
+                        {flight.origin.code} → {flight.destination.code} (
+                        {flight.aircraft})
                       </p>
                     </div>
                   </div>
 
                   <div className="text-right flex items-center gap-3">
                     <div>
-                      <p className="text-xs font-mono font-bold text-foreground">{flight.departureTime}</p>
-                      <p className="text-[10px] text-muted">Gate {flight.id.slice(-1) || "1"}</p>
+                      <p className="text-xs font-mono font-bold text-foreground">
+                        {flight.departureTime}
+                      </p>
+                      <p className="text-[10px] text-muted">
+                        Gate {flight.id.slice(-1) || "1"}
+                      </p>
                     </div>
                     <Badge
-    variant={flight.status === "BOARDING" ? "accent" : flight.status === "DELAYED" ? "warning" : "blue"}
-    size="sm"
-  >
+                      variant={
+                        flight.status === "BOARDING"
+                          ? "accent"
+                          : flight.status === "DELAYED"
+                            ? "warning"
+                            : "blue"
+                      }
+                      size="sm"
+                    >
                       {flight.status}
                     </Badge>
                   </div>
-                </div>)}
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="pt-4 mt-2 border-t border-border flex items-center justify-between text-xs text-muted">
             <span>Fleet in Air: 3 Aircraft</span>
-            <span className="font-semibold text-emerald-600">All Operations Normal</span>
+            <span className="font-semibold text-emerald-600">
+              All Operations Normal
+            </span>
           </div>
         </div>
       </div>
 
-      {
-    /* Live Operations & Passenger Activity Feed */
-  }
+      {/* Live Operations & Passenger Activity Feed */}
       <div className="admin-chart-card bg-surface p-6 rounded-2xl shadow-sm border border-border space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <div>
@@ -284,57 +306,71 @@ const AdminDashboardPage = () => {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Live Operations & System Activity Feed
             </h3>
-            <p className="text-xs text-muted">Real-time log of passenger transactions, flight departures, and gate dispatches</p>
+            <p className="text-xs text-muted">
+              Real-time log of passenger transactions, flight departures, and
+              gate dispatches
+            </p>
           </div>
-          <span className="text-[11px] font-mono text-muted">Auto-refreshing (Active)</span>
+          <span className="text-[11px] font-mono text-muted">
+            Auto-refreshing (Active)
+          </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           {[
-    {
-      time: "2m ago",
-      title: "New Booking Confirmed",
-      desc: "PNR TG88JK \u2022 Chukwuemeka Obi (Lagos \u2192 Abuja) \u2022 \u20A645,000 paid",
-      badge: "Booking",
-      badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200"
-    },
-    {
-      time: "12m ago",
-      title: "Flight Delay Advisory",
-      desc: "Flight TG-204 (Lagos \u2192 London) delayed 35m due to ATC slot congestion",
-      badge: "Flight Ops",
-      badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
-    },
-    {
-      time: "28m ago",
-      title: "Online Check-In Issued",
-      desc: "Passenger Amaka Eze checked in for TG-204 LOS\u2192LHR (Seat 1F)",
-      badge: "Check-In",
-      badgeColor: "bg-blue-50 text-blue-700 border-blue-200"
-    },
-    {
-      time: "45m ago",
-      title: "Aircraft Turnaround Inspection",
-      desc: "5N-TGR (Boeing 787-9) cleared by technical crew at Gate 12, Murtala Muhammed",
-      badge: "Maintenance",
-      badgeColor: "bg-surface-muted text-foreground border-border"
-    }
-  ].map((item, idx) => <div key={idx} className="p-3.5 bg-background rounded-xl border border-border space-y-1.5 hover:bg-surface-muted/70 transition">
+            {
+              time: "2m ago",
+              title: "New Booking Confirmed",
+              desc: "A new passenger booking was confirmed and payment was successfully captured.",
+              badge: "Booking",
+              badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
+            },
+            {
+              time: "12m ago",
+              title: "Flight Delay Advisory",
+              desc: "Flight TG-204 (Lagos \u2192 London) delayed 35m due to ATC slot congestion",
+              badge: "Flight Ops",
+              badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
+            },
+            {
+              time: "28m ago",
+              title: "Online Check-In Issued",
+              desc: "Passenger Amaka Eze checked in for TG-204 LOS\u2192LHR (Seat 1F)",
+              badge: "Check-In",
+              badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
+            },
+            {
+              time: "45m ago",
+              title: "Aircraft Turnaround Inspection",
+              desc: "5N-TGR (Boeing 787-9) cleared by technical crew at Gate 12, Murtala Muhammed",
+              badge: "Maintenance",
+              badgeColor: "bg-surface-muted text-foreground border-border",
+            },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className="p-3.5 bg-background rounded-xl border border-border space-y-1.5 hover:bg-surface-muted/70 transition"
+            >
               <div className="flex items-center justify-between">
-                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${item.badgeColor}`}>
+                <span
+                  className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${item.badgeColor}`}
+                >
                   {item.badge}
                 </span>
-                <span className="text-[10px] font-mono text-muted">{item.time}</span>
+                <span className="text-[10px] font-mono text-muted">
+                  {item.time}
+                </span>
               </div>
               <p className="font-bold text-foreground">{item.title}</p>
-              <p className="text-[11px] text-muted leading-relaxed">{item.desc}</p>
-            </div>)}
+              <p className="text-[11px] text-muted leading-relaxed">
+                {item.desc}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 var stdin_default = AdminDashboardPage;
-export {
-  AdminDashboardPage,
-  stdin_default as default
-};
+export { AdminDashboardPage, stdin_default as default };

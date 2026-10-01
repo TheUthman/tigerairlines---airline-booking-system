@@ -156,7 +156,7 @@ const Landing = () => {
   const testimonials = [
     {
       initial: "C",
-      name: "Chukwuemeka Obi",
+      name: "Verified Traveler",
       location: "Lagos, Nigeria",
       quote:
         "Booked Lagos to London with TigerAirlines and the experience was world-class from start to finish. Check-in was seamless and the business class seats were incredible.",
@@ -164,7 +164,7 @@ const Landing = () => {
     },
     {
       initial: "N",
-      name: "Ngozi Adeleke",
+      name: "Business Traveler",
       location: "Abuja, Nigeria",
       quote:
         "I fly Lagos\u2013Abuja almost weekly for work. TigerAirlines is always on time, the app works perfectly, and boarding is the smoothest I have experienced on any Nigerian route.",
@@ -172,7 +172,7 @@ const Landing = () => {
     },
     {
       initial: "A",
-      name: "Amaka Eze",
+      name: "Frequent Flyer",
       location: "Port Harcourt, Nigeria",
       quote:
         "The team at TigerAirlines went above and beyond when my connecting flight was delayed. They rebooked me instantly and even offered a lounge pass. Truly Nigerian hospitality!",

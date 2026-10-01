@@ -5,9 +5,9 @@ const apiClient = axios.create({
   // by default so the Vite development server does not need a proxy.
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api",
   headers: {
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
   },
-  timeout: 15000
+  timeout: 15000,
 });
 
 // The gateway derives caller identity from the JWT and injects service headers.
@@ -72,7 +72,7 @@ apiClient.interceptors.response.use(
           const refreshRes = await axios.post(
             `${apiClient.defaults.baseURL}/auth/refresh`,
             { refreshToken },
-            { headers: { "Content-Type": "application/json" } }
+            { headers: { "Content-Type": "application/json" } },
           );
 
           const { token: accessToken, refreshToken: newRefreshToken } =
@@ -100,7 +100,7 @@ apiClient.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
@@ -115,8 +115,38 @@ export const extractData = (res, fallback = null) => {
   }
   return {
     success: true,
-    data: payload !== undefined ? payload : fallback
+    data: payload !== undefined ? payload : fallback,
   };
+};
+
+export const getApiErrorMessage = (
+  error,
+  fallback = "Something went wrong. Please try again.",
+) => {
+  if (!error) return fallback;
+
+  if (error.response) {
+    const serverMessage =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.response?.data?.detail;
+
+    if (serverMessage) return serverMessage;
+
+    if (error.response.status === 404) {
+      return "The requested record could not be found.";
+    }
+
+    if (error.response.status === 500) {
+      return "The server is currently unavailable. Please try again in a moment.";
+    }
+  }
+
+  if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+    return "Unable to connect to the backend right now. Please check your connection and try again.";
+  }
+
+  return error.message || fallback;
 };
 
 export { apiClient };

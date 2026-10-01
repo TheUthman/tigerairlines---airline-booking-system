@@ -9,17 +9,13 @@ import {
   ArrowLeft,
   Plane,
   Tag,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import { useAppDispatch, useAppSelector } from "../app/store";
 import { setConfirmedBooking } from "../features/booking/bookingSlice";
-import {
-  bookingService,
-  paymentService,
-  pricingService
-} from "../services";
+import { bookingService, paymentService, pricingService } from "../services";
 import { useToast } from "../components/ui/Toast";
 
 const PaymentPage = () => {
@@ -31,7 +27,9 @@ const PaymentPage = () => {
   const passengers = useAppSelector((state) => state.booking.passengers);
   const selectedSeats = useAppSelector((state) => state.booking.selectedSeats);
   const extras = useAppSelector((state) => state.booking.extras);
-  const cabinClass = useAppSelector((state) => state.booking.searchParams.cabinClass);
+  const cabinClass = useAppSelector(
+    (state) => state.booking.searchParams.cabinClass,
+  );
   const passenger = passengers[0] || {};
 
   const [paymentMethod, setPaymentMethod] = useState("card");
@@ -47,12 +45,14 @@ const PaymentPage = () => {
       : flight.priceEconomy
     : 45000;
 
-  const baggageCost = extras.baggageKg === 30 ? 8000 : extras.baggageKg === 40 ? 15000 : 0;
+  const baggageCost =
+    extras.baggageKg === 30 ? 8000 : extras.baggageKg === 40 ? 15000 : 0;
   const mealCost = extras.mealPreference === "Chef's Special" ? 3500 : 0;
   const insuranceCost = extras.travelInsurance ? 5000 : 0;
   const priorityCost = extras.priorityBoarding ? 2500 : 0;
   const loungeCost = extras.loungeAccess ? 8000 : 0;
-  const extrasTotal = baggageCost + mealCost + insuranceCost + priorityCost + loungeCost;
+  const extrasTotal =
+    baggageCost + mealCost + insuranceCost + priorityCost + loungeCost;
 
   // Recalculate dynamic pricing quote with pricingService
   useEffect(() => {
@@ -68,7 +68,7 @@ const PaymentPage = () => {
           totalSeats: 180,
           cabin: (cabinClass || "ECONOMY").toUpperCase(),
           promoCode: appliedPromo,
-          frequentFlyerPoints: 500
+          frequentFlyerPoints: 500,
         });
 
         if (isSubscribed && quoteRes?.data) {
@@ -87,7 +87,8 @@ const PaymentPage = () => {
     };
   }, [flight, rawBasePrice, cabinClass, appliedPromo]);
 
-  const effectiveBaseFare = pricingQuote?.total !== undefined ? pricingQuote.total : rawBasePrice;
+  const effectiveBaseFare =
+    pricingQuote?.total !== undefined ? pricingQuote.total : rawBasePrice;
   const taxesAndFees = Math.round(effectiveBaseFare * 0.12);
   const grandTotal = effectiveBaseFare + extrasTotal + taxesAndFees;
 
@@ -100,14 +101,14 @@ const PaymentPage = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
   } = useForm({
     defaultValues: {
       cardNumber: "4242 •••• •••• 4242",
       cardHolder: `${passenger.firstName} ${passenger.lastName}`.toUpperCase(),
       expiryDate: "12/28",
-      cvv: "883"
-    }
+      cvv: "883",
+    },
   });
 
   const onSubmit = async (data) => {
@@ -115,7 +116,7 @@ const PaymentPage = () => {
     try {
       if (data.cvv === "000") {
         throw new Error(
-          "Card declined by issuing bank (insufficient funds or simulated test decline)"
+          "Card declined by issuing bank (insufficient funds or simulated test decline)",
         );
       }
 
@@ -132,7 +133,7 @@ const PaymentPage = () => {
         cabinClass: cabinClass || "Economy",
         status: "PENDING_PAYMENT",
         seatNumber: selectedSeats[0] || "12A",
-        amount: grandTotal
+        amount: grandTotal,
       };
 
       const bookingRes = await bookingService.createBooking(bookingPayload);
@@ -146,7 +147,7 @@ const PaymentPage = () => {
       // Step 2: Initiate pending payment record (Payment Service)
       const initRes = await paymentService.initiatePayment({
         bookingId,
-        amount: grandTotal
+        amount: grandTotal,
       });
 
       // The payment provider calls the backend webhook. Its event confirms the
@@ -157,20 +158,21 @@ const PaymentPage = () => {
         pnr,
         status: "PENDING_PAYMENT",
         paymentId: initRes?.data?.id,
-        providerReference: initRes?.data?.providerReference
+        providerReference: initRes?.data?.providerReference,
       };
 
       toast.success(
         `Payment request created for ₦${grandTotal.toLocaleString("en-NG")}. We will confirm PNR ${pnr} after the provider webhook succeeds.`,
-        "Payment Pending"
+        "Payment Pending",
       );
 
       dispatch(setConfirmedBooking(pendingData));
       navigate(`/confirmation?pnr=${pnr}`);
     } catch (err) {
       toast.error(
-        err?.message || "Payment authorization failed. Please check your card number or expiration.",
-        "Payment Declined"
+        err?.message ||
+          "Payment authorization failed. Please check your card number or expiration.",
+        "Payment Declined",
       );
     } finally {
       setIsProcessing(false);
@@ -193,7 +195,9 @@ const PaymentPage = () => {
             <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-sm border border-border">
               <div className="flex items-center justify-between pb-4 border-b border-border mb-6">
                 <div>
-                  <h2 className="text-xl font-black text-foreground">Payment Details</h2>
+                  <h2 className="text-xl font-black text-foreground">
+                    Payment Details
+                  </h2>
                   <p className="text-xs text-muted mt-0.5">
                     Safe & encrypted transaction under 256-bit TLS
                   </p>
@@ -217,7 +221,9 @@ const PaymentPage = () => {
                 >
                   <CreditCard size={18} className="mb-2" />
                   <p className="text-xs font-bold">Debit / Credit</p>
-                  <p className="text-[10px] text-muted">Mastercard, Visa, Verve</p>
+                  <p className="text-[10px] text-muted">
+                    Mastercard, Visa, Verve
+                  </p>
                 </button>
 
                 <button
@@ -253,8 +259,10 @@ const PaymentPage = () => {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input
                   label="Cardholder Name *"
-                  placeholder="e.g. CHUKWUEMEKA OBI"
-                  {...register("cardHolder", { required: "Cardholder name is required" })}
+                  placeholder="e.g. JANE DOE"
+                  {...register("cardHolder", {
+                    required: "Cardholder name is required",
+                  })}
                   error={errors.cardHolder?.message}
                 />
 
@@ -262,7 +270,9 @@ const PaymentPage = () => {
                   label="Card Number *"
                   placeholder="4242 4242 4242 4242"
                   icon={<CreditCard size={16} />}
-                  {...register("cardNumber", { required: "Card number is required" })}
+                  {...register("cardNumber", {
+                    required: "Card number is required",
+                  })}
                   error={errors.cardNumber?.message}
                 />
 
@@ -270,7 +280,9 @@ const PaymentPage = () => {
                   <Input
                     label="Expiry Date *"
                     placeholder="MM/YY"
-                    {...register("expiryDate", { required: "Expiry date is required" })}
+                    {...register("expiryDate", {
+                      required: "Expiry date is required",
+                    })}
                     error={errors.expiryDate?.message}
                   />
 
@@ -323,18 +335,23 @@ const PaymentPage = () => {
                     <span className="text-base font-black text-foreground">
                       {flight?.origin?.code || "LOS"}
                     </span>
-                    <p className="text-[11px] text-muted">{flight?.origin?.city || "Lagos"}</p>
+                    <p className="text-[11px] text-muted">
+                      {flight?.origin?.city || "Lagos"}
+                    </p>
                   </div>
                   <Plane size={16} className="text-secondary" />
                   <div className="text-right">
                     <span className="text-base font-black text-foreground">
                       {flight?.destination?.code || "ABV"}
                     </span>
-                    <p className="text-[11px] text-muted">{flight?.destination?.city || "Abuja"}</p>
+                    <p className="text-[11px] text-muted">
+                      {flight?.destination?.city || "Abuja"}
+                    </p>
                   </div>
                 </div>
                 <p className="text-[11px] text-muted mt-2 font-mono">
-                  Depart: {flight?.departureDate || "2026-10-15"} at {flight?.departureTime || "08:30"}
+                  Depart: {flight?.departureDate || "2026-10-15"} at{" "}
+                  {flight?.departureTime || "08:30"}
                 </p>
               </div>
 
@@ -361,23 +378,28 @@ const PaymentPage = () => {
                     Apply
                   </button>
                 </div>
-                {pricingQuote?.rulesUsed && pricingQuote.rulesUsed.length > 0 && (
-                  <div className="pt-1 text-[10px] text-muted space-y-0.5">
-                    {pricingQuote.rulesUsed.map((rule, idx) => (
-                      <p key={idx} className="flex items-center gap-1 text-emerald-700 font-medium">
-                        <Sparkles size={10} />
-                        <span>{rule}</span>
-                      </p>
-                    ))}
-                  </div>
-                )}
+                {pricingQuote?.rulesUsed &&
+                  pricingQuote.rulesUsed.length > 0 && (
+                    <div className="pt-1 text-[10px] text-muted space-y-0.5">
+                      {pricingQuote.rulesUsed.map((rule, idx) => (
+                        <p
+                          key={idx}
+                          className="flex items-center gap-1 text-emerald-700 font-medium"
+                        >
+                          <Sparkles size={10} />
+                          <span>{rule}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
               </div>
 
               {/* Items Breakdown */}
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-muted">
                   <span>
-                    1x Adult Passenger ({passenger.firstName} {passenger.lastName})
+                    1x Adult Passenger ({passenger.firstName}{" "}
+                    {passenger.lastName})
                   </span>
                   <span className="font-semibold text-foreground">
                     ₦{effectiveBaseFare.toLocaleString("en-NG")}

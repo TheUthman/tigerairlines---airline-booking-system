@@ -56,7 +56,9 @@
   --color-ring: var(--ring);
   --color-on-primary: var(--on-primary);
   --color-on-secondary: var(--on-secondary);
-  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans:
+    "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
 }
 
 html {
@@ -73,12 +75,29 @@ body {
   color: var(--foreground);
   min-height: 100vh;
   overflow-x: hidden;
-  transition: background-color 200ms ease, color 200ms ease;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 ::selection {
   background: var(--primary);
   color: var(--on-primary);
+}
+
+@keyframes password-rule-check {
+  from {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.password-rule-check {
+  animation: password-rule-check 180ms ease-out both;
 }
 
 input,
