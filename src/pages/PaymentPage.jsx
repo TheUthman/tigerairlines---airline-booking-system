@@ -178,7 +178,7 @@ const PaymentPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-10 px-4 md:px-8">
+    <div className="bg-background py-10 px-4 md:px-8">
       <div className="max-w-6xl mx-auto">
         <button
           onClick={() => navigate("/book")}

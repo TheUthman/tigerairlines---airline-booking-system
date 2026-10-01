@@ -71,7 +71,7 @@ const FlightStatusPage = () => {
       { name: "Landed", time: selectedFlight?.arrivalTime || "11:45", completed: currentStepIndex >= 4 }
     ];
   };
-  return <div className="min-h-screen bg-background py-10 px-4 md:px-8">
+  return <div className="bg-background py-10 px-4 md:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {
     /* Header */

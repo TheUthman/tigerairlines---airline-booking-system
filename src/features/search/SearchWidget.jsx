@@ -234,7 +234,7 @@ const SearchWidget = () => {
     /* Class & Search Button Container */
   }
             <div className="lg:col-span-2 p-3 flex items-center justify-between gap-2 hover:bg-surface-muted/70 transition">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <label htmlFor="cabin-select" className="text-[11px] font-bold uppercase tracking-wider text-muted mb-0.5 block">
                   Class
                 </label>
@@ -252,12 +252,9 @@ const SearchWidget = () => {
                 </div>
               </div>
 
-              {
-    /* Red-Orange Gradient Search Button */
-  }
               <button
     type="submit"
-    className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary to-primary hover:from-secondary-hover hover:to-primary-hover text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 cursor-pointer shrink-0"
+    className="hidden lg:flex w-12 h-12 rounded-xl bg-primary hover:bg-primary-hover text-on-primary items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer shrink-0"
     title="Search Flights"
     aria-label="Search Flights"
   >
@@ -265,6 +262,14 @@ const SearchWidget = () => {
               </button>
             </div>
           </div>
+
+          <button
+    type="submit"
+    className="lg:hidden mt-4 w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-on-primary font-bold py-3 rounded-2xl text-sm shadow-md cursor-pointer"
+  >
+            <Search size={16} />
+            Search flights
+          </button>
 
           {
     /* Recent Searches Row */

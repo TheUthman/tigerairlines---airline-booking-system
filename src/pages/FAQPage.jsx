@@ -49,7 +49,7 @@ const FAQPage = () => {
     const matchesSearch = faq.question.toLowerCase().includes(search.toLowerCase()) || faq.answer.toLowerCase().includes(search.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-  return <div className="min-h-screen bg-background py-12 px-4 md:px-8">
+  return <div className="bg-background py-12 px-4 md:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         {
     /* Header */
@@ -133,9 +133,9 @@ const FAQPage = () => {
         {
     /* Support CTA card */
   }
-        <div className="bg-gradient-to-r from-[#111111] to-[#242424] text-white rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-md">
+        <div className="bg-surface text-foreground rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-sm border border-border">
           <div className="space-y-1">
-            <h3 className="text-lg font-black tracking-tight">Still have questions?</h3>
+            <h3 className="text-lg font-black tracking-tight text-foreground">Still have questions?</h3>
             <p className="text-xs text-muted">
               Our 24/7 Nigeria operations desk and support representatives are ready to assist you.
             </p>

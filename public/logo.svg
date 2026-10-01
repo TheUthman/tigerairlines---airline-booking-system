@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080">
+  <title>Tiger Airlines emblem</title>
+  <desc>Minimal geometric tiger emblem in orange.</desc>
+  <g fill="none" stroke="#F4511E" stroke-width="28"
+     stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M300 420 C270 385 250 340 250 290 L350 315"/>
+    <path d="M780 420 C810 385 830 340 830 290 L730 315"/>
+    <path d="M330 370 C450 245 630 245 750 370"/>
+    <path d="M430 405 C495 345 585 345 650 405"/>
+    <path d="M300 420 C280 500 295 610 345 690 C385 755 440 790 540 800"/>
+    <path d="M780 420 C800 500 785 610 735 690 C695 755 640 790 540 800"/>
+    <path d="M300 420 C355 445 430 455 455 495 C470 520 455 585 480 610 C500 632 525 635 540 635 C555 635 580 632 600 610 C625 585 610 520 625 495 C650 455 725 445 780 420"/>
+    <path d="M365 450 C350 530 360 615 425 675"/>
+    <path d="M715 450 C730 530 720 615 655 675"/>
+    <path d="M540 635 L540 690"/>
+    <path d="M540 690 L430 760"/>
+    <path d="M540 690 L650 760"/>
+    <path d="M430 760 C495 805 585 805 650 760"/>
+  </g>
+</svg>

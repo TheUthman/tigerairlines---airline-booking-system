@@ -72,7 +72,7 @@ const CheckInPage = () => {
       setLoading(false);
     }
   };
-  return <div className="min-h-screen bg-background py-10 px-4 md:px-8">
+  return <div className="bg-background py-10 px-4 md:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         {
     /* Header */

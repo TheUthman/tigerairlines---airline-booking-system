@@ -57,9 +57,9 @@ const AdminLoginPage = () => {
     );
     navigate(from, { replace: true });
   };
-  return <div className="min-h-screen bg-[#111111] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+  return <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
       <div className="absolute top-4 right-4 z-20">
-        <ThemeToggle variant="inverse" />
+        <ThemeToggle />
       </div>
       {
     /* Background Graphic */
@@ -74,7 +74,7 @@ const AdminLoginPage = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <Link
     to="/"
-    className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-white mb-6 transition"
+    className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-primary mb-6 transition"
   >
           <ArrowLeft size={14} /> Back to Customer Portal
         </Link>
@@ -85,7 +85,7 @@ const AdminLoginPage = () => {
           </div>
         </div>
 
-        <h2 className="text-center text-2xl font-black text-white tracking-tight">
+        <h2 className="text-center text-2xl font-black text-foreground tracking-tight">
           TigerAirlines Operations
         </h2>
         <p className="mt-1 text-center text-xs text-muted">
@@ -95,7 +95,7 @@ const AdminLoginPage = () => {
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4 sm:px-0">
         <div className="bg-surface py-8 px-6 shadow-2xl rounded-3xl sm:px-10 border border-border">
-          {error && <div className="mb-4 p-3 rounded-xl bg-primary/10 border border-primary/25 text-red-700 text-xs flex items-center gap-2">
+          {error && <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-700/50 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
               <AlertCircle size={16} className="shrink-0" />
               <span>{error}</span>
             </div>}

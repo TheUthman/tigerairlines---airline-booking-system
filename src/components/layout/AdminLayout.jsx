@@ -25,6 +25,7 @@ const AdminLayout = () => {
     if (path.includes("/airports")) return "Airport Terminals & Route Network";
     if (path.includes("/passengers")) return "Passenger Registry & Miles";
     if (path.includes("/bookings")) return "PNR Bookings & E-Tickets";
+    if (path.includes("/users")) return "User Access & Roles";
     return "Operations Console";
   };
   return <div className="flex min-h-screen bg-background font-sans">

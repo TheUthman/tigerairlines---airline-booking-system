@@ -135,12 +135,12 @@ const MyTripsPage = () => {
   };
   const upcomingTrips = bookings.filter((b) => b.status !== "CANCELLED");
   const pastTrips = bookings.filter((b) => b.status === "CANCELLED");
-  return <div className="min-h-screen bg-background py-10 px-4 md:px-8">
+  return <div className="bg-background py-10 px-4 md:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {
     /* Customer Profile & Loyalty Points Balance Widget */
   }
-        <div className="bg-gradient-to-r from-primary via-primary-hover to-[#111111] rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-primary-dark rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
           <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-secondary/20 to-transparent pointer-events-none" />
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
@@ -192,7 +192,7 @@ const MyTripsPage = () => {
         {
     /* Navigation Tabs */
   }
-        <div className="flex items-center gap-3 border-b border-border pb-2">
+        <div className="flex items-center gap-2 overflow-x-auto border-b border-border pb-2">
           <button
     type="button"
     onClick={() => {

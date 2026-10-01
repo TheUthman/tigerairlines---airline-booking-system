@@ -95,7 +95,7 @@ const SearchResultsPage = () => {
     dispatch(setBookingStep(1));
     navigate("/book");
   };
-  return <div className="min-h-screen bg-background py-8 px-4 md:px-8">
+  return <div className="bg-background py-8 px-4 md:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {
     /* Header Breadcrumbs & Search Summary */
@@ -109,7 +109,7 @@ const SearchResultsPage = () => {
               <ChevronRight size={12} />
               <span>Search Results</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-xl md:text-2xl font-black text-foreground">
                 {originParam} <ArrowRight size={20} className="inline text-primary" /> {destParam}
               </h1>
@@ -503,16 +503,16 @@ const SearchResultsPage = () => {
                           {
       /* Tier 3: Royal Business Class */
     }
-                          <div className="bg-[#111111] text-white rounded-2xl p-4 border border-white/10 flex flex-col justify-between space-y-4 shadow-sm">
+                          <div className="bg-background text-foreground rounded-2xl p-4 border border-border flex flex-col justify-between space-y-4 shadow-sm">
                             <div className="space-y-2">
                               <div className="flex justify-between items-start">
                                 <div>
                                   <h5 className="font-bold text-secondary text-sm flex items-center gap-1">
                                     <Sparkles size={13} /> Royal Business
                                   </h5>
-                                  <span className="text-[10px] text-white/60">Ultimate Luxury & Lounge</span>
+                                  <span className="text-[10px] text-muted">Ultimate Luxury & Lounge</span>
                                 </div>
-                                <span className="font-mono font-black text-base text-white">{formatNaira(flight.priceBusiness)}</span>
+                                <span className="font-mono font-black text-base text-foreground">{formatNaira(flight.priceBusiness)}</span>
                               </div>
                               <ul className="text-[11px] text-muted space-y-1.5 pt-2">
                                 <li className="flex items-center gap-1.5"><Check size={13} className="text-emerald-400" /> 40 kg Baggage + 2 Cabin Bags</li>

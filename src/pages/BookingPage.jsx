@@ -44,7 +44,7 @@ const BookingPage = () => {
     { number: 3, label: "Add-ons & Extras", icon: <PlusCircle size={16} /> },
     { number: 4, label: "Review & Confirm", icon: <CheckSquare size={16} /> }
   ];
-  return <div className="min-h-screen bg-background py-8 px-4 md:px-8">
+  return <div className="bg-background py-8 px-4 md:px-8">
       <div className="max-w-4xl mx-auto">
         {
     /* Stepper Header */

@@ -2,18 +2,17 @@ import { useState, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import TopBar from "./TopBar";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import ChatWidget from "../ui/ChatWidget";
-import AuthModal from "../../features/auth/AuthModal";
 import Modal from "../ui/Modal";
 import { AlertTriangle, CheckCircle, Info } from "lucide-react";
+
 const CustomerLayout = () => {
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
   const location = useLocation();
   const pageContainerRef = useRef(null);
+
   useGSAP(() => {
     if (pageContainerRef.current) {
       window.scrollTo({ top: 0, behavior: "instant" });
@@ -24,6 +23,7 @@ const CustomerLayout = () => {
       );
     }
   }, [location.pathname]);
+
   const alerts = [
     {
       id: 1,
@@ -47,54 +47,55 @@ const CustomerLayout = () => {
       type: "warning"
     }
   ];
-  return <div className="flex flex-col min-h-screen">
-      <TopBar
-    onOpenAuthModal={() => setAuthModalOpen(true)}
-    onOpenAlertsModal={() => setAlertsModalOpen(true)}
-  />
-      <Navbar />
+
+  const alertStyles = {
+    warning: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-700/50 text-amber-900 dark:text-amber-200",
+    success: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-700/50 text-emerald-900 dark:text-emerald-200",
+    info: "bg-primary/10 border-primary/20 text-foreground"
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      <Navbar onOpenAlertsModal={() => setAlertsModalOpen(true)} />
       <main ref={pageContainerRef} className="flex-1">
         <Outlet />
       </main>
       <Footer />
       <ChatWidget />
 
-
-      {
-    /* Auth Modal */
-  }
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-
-      {
-    /* Trip Alerts Modal */
-  }
       <Modal
-    isOpen={alertsModalOpen}
-    onClose={() => setAlertsModalOpen(false)}
-    title="Active Travel Alerts"
-    description="Live notifications regarding your upcoming Nigerian domestic and international flights."
-    maxWidth="md"
-  >
+        isOpen={alertsModalOpen}
+        onClose={() => setAlertsModalOpen(false)}
+        title="Active Travel Alerts"
+        description="Live notifications regarding your upcoming Nigerian domestic and international flights."
+        maxWidth="md"
+      >
         <div className="space-y-3 text-xs">
-          {alerts.map((al) => <div
-    key={al.id}
-    className={`p-3.5 rounded-xl border flex items-start gap-3 ${al.type === "warning" ? "bg-amber-50 border-amber-200 text-amber-900" : al.type === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-primary/10 border-primary/20 text-foreground"}`}
-  >
-              {al.type === "warning" ? <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" /> : al.type === "success" ? <CheckCircle size={16} className="text-emerald-600 shrink-0 mt-0.5" /> : <Info size={16} className="text-primary shrink-0 mt-0.5" />}
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold">{al.title}</h4>
-                  <span className="text-[10px] opacity-60 font-mono">{al.time}</span>
+          {alerts.map((al) => (
+            <div
+              key={al.id}
+              className={`p-3.5 rounded-xl border flex items-start gap-3 ${alertStyles[al.type] || alertStyles.info}`}
+            >
+              {al.type === "warning" ? (
+                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              ) : al.type === "success" ? (
+                <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              ) : (
+                <Info size={16} className="text-primary shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-3">
+                  <h4 className="font-bold leading-snug">{al.title}</h4>
+                  <span className="text-[10px] opacity-60 font-mono shrink-0">{al.time}</span>
                 </div>
                 <p className="mt-1 opacity-80 leading-relaxed">{al.desc}</p>
               </div>
-            </div>)}
+            </div>
+          ))}
         </div>
       </Modal>
-    </div>;
+    </div>
+  );
 };
-var stdin_default = CustomerLayout;
-export {
-  CustomerLayout,
-  stdin_default as default
-};
+
+export default CustomerLayout;

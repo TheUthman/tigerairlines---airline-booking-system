@@ -57,7 +57,7 @@ const ChatWidget = () => {
       ]);
     }, 700);
   };
-  return <div className="fixed bottom-6 right-6 z-40">
+  return <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
       {
     /* Floating Button */
   }
@@ -77,7 +77,7 @@ const ChatWidget = () => {
       {
     /* Chat Popover Window */
   }
-      {isOpen && <div className="w-[340px] sm:w-[380px] bg-surface rounded-3xl shadow-2xl border border-border overflow-hidden flex flex-col h-[490px] animate-in fade-in slide-in-from-bottom-5 duration-200">
+      {isOpen && <div className="w-[min(380px,calc(100vw-2rem))] bg-surface rounded-3xl shadow-2xl border border-border overflow-hidden flex flex-col h-[min(490px,70vh)]">
           {
     /* Header */
   }
@@ -132,13 +132,13 @@ const ChatWidget = () => {
     className={`flex items-start gap-2 ${m.sender === "user" ? "flex-row-reverse" : "flex-row"}`}
   >
                 <div
-    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] ${m.sender === "user" ? "bg-white/10 text-white" : "bg-primary text-white"}`}
+    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] ${m.sender === "user" ? "bg-foreground text-background" : "bg-primary text-on-primary"}`}
   >
                   {m.sender === "user" ? <User size={12} /> : <Bot size={12} />}
                 </div>
 
                 <div
-    className={`max-w-[78%] rounded-2xl p-3 leading-relaxed shadow-2xs ${m.sender === "user" ? "bg-[#111111] text-white rounded-tr-none" : "bg-surface text-foreground border border-border rounded-tl-none"}`}
+    className={`max-w-[78%] rounded-2xl p-3 leading-relaxed shadow-2xs ${m.sender === "user" ? "bg-foreground text-background rounded-tr-none" : "bg-surface text-foreground border border-border rounded-tl-none"}`}
   >
                   <p>{m.text}</p>
                   <span

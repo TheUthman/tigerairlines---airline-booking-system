@@ -70,7 +70,7 @@ const DestinationsPage = () => {
     );
     navigate(`/search?from=LOS&to=${code}`);
   };
-  return <div className="min-h-screen bg-background py-12 px-4 md:px-8">
+  return <div className="bg-background py-12 px-4 md:px-8">
       <div className="max-w-7xl mx-auto space-y-10">
         <div className="text-center max-w-2xl mx-auto">
           <span className="text-xs font-bold uppercase tracking-wider text-primary">Explore The World</span>

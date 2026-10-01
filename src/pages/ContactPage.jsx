@@ -36,7 +36,7 @@ const ContactPage = () => {
       });
     }, 800);
   };
-  return <div className="min-h-screen bg-background py-12 px-4 md:px-8">
+  return <div className="bg-background py-12 px-4 md:px-8">
       <div className="max-w-5xl mx-auto space-y-10">
         {
     /* Header */

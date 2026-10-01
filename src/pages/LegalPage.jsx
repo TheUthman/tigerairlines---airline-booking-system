@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Shield, FileText, Luggage, HeartHandshake } from "lucide-react";
 const LegalPage = () => {
   const location = useLocation();
@@ -15,7 +15,7 @@ const LegalPage = () => {
   useEffect(() => {
     setActiveSection(getInitialSection());
   }, [location.pathname]);
-  return <div className="min-h-screen bg-background py-12 px-4 md:px-8">
+  return <div className="bg-background py-12 px-4 md:px-8">
       <div className="max-w-5xl mx-auto space-y-8">
         {
     /* Header */
@@ -48,15 +48,14 @@ const LegalPage = () => {
   ].map((item) => {
     const Icon = item.icon;
     const isActive = activeSection === item.id;
-    return <button
+    return <Link
       key={item.id}
-      type="button"
-      onClick={() => setActiveSection(item.id)}
-      className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition flex items-center gap-3 cursor-pointer ${isActive ? "bg-primary text-white shadow-sm" : "bg-surface hover:bg-surface-muted text-foreground border border-border"}`}
+      to={item.path}
+      className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition flex items-center gap-3 ${isActive ? "bg-primary text-on-primary shadow-sm" : "bg-surface hover:bg-surface-muted text-foreground border border-border"}`}
     >
-                  <Icon size={16} />
+                  <Icon size={16} className="shrink-0" />
                   <span>{item.label}</span>
-                </button>;
+                </Link>;
   })}
           </div>
 

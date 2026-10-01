@@ -82,7 +82,7 @@ const VerifyEmailPage = () => {
   };
   return <div
     ref={containerRef}
-    className="min-h-screen bg-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+    className="bg-background flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8"
   >
       <div className="max-w-md w-full space-y-8 verify-card bg-surface p-8 md:p-10 rounded-3xl shadow-xl border border-border">
         {
