@@ -20,42 +20,53 @@ import {
   Circle,
 } from "lucide-react";
 import authService from "../services/authService";
+import { getApiErrorMessage } from "../services/apiClient";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { useToast } from "../components/ui/Toast";
-const nigerianPhoneRegex = /^(?:\+?234[789][01]\d{8}|0[789][01]\d{8})$/;
+
+const nigerianPhoneRegex = /^(?:\+?234|0)[789][01]\d{8}$/;
+
 const registerSchema = yup.object({
   fullName: yup
     .string()
-    .required("Full legal name is required")
-    .min(3, "Name must be at least 3 characters"),
+    .trim()
+    .required("Please enter your full legal name")
+    .min(3, "Full name must be at least 3 characters long"),
   email: yup
     .string()
+    .trim()
     .required("Email address is required")
-    .email("Please enter a valid email address"),
+    .email("Please enter a valid email address (e.g. name@example.com)"),
   phone: yup
     .string()
-    .required("Nigerian phone number is required")
-    .matches(
-      nigerianPhoneRegex,
-      "Invalid Nigerian phone number format (e.g. +234 803 123 4567 or 08031234567)",
+    .required("Phone number is required")
+    .test(
+      "is-valid-nigerian-phone",
+      "Please enter a valid Nigerian phone number (e.g. +234 803 123 4567 or 08031234567)",
+      (value) => {
+        if (!value) return false;
+        const sanitized = value.replace(/[\s\-()]/g, "");
+        return nigerianPhoneRegex.test(sanitized);
+      }
     ),
   password: yup
     .string()
     .required("Password is required")
-    .min(8, "Password must be at least 8 characters")
-    .matches(/[A-Z]/, "Must contain at least one uppercase letter")
-    .matches(/[a-z]/, "Must contain at least one lowercase letter")
-    .matches(/[0-9]/, "Must contain at least one number")
+    .min(8, "Password must be at least 8 characters long")
+    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .matches(/[a-z]/, "Password must contain at least one lowercase letter")
+    .matches(/[0-9]/, "Password must contain at least one number")
     .matches(
       /[^A-Za-z0-9]/,
-      "Must contain at least one special character (e.g. !@#$%^&*)",
+      "Password must contain at least one special character (e.g. !@#$%^&*)",
     ),
   confirmPassword: yup
     .string()
     .required("Please confirm your password")
-    .oneOf([yup.ref("password")], "Passwords do not match"),
+    .oneOf([yup.ref("password")], "Passwords do not match. Please re-enter identical passwords."),
 });
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -64,6 +75,7 @@ const RegisterPage = () => {
   const [serverError, setServerError] = useState(null);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef(null);
+
   const {
     register,
     handleSubmit,
@@ -73,7 +85,9 @@ const RegisterPage = () => {
     resolver: yupResolver(registerSchema),
     mode: "onChange",
   });
+
   const currentPassword = watch("password") || "";
+
   const passwordRequirements = [
     { label: "At least 8 characters", met: currentPassword.length >= 8 },
     { label: "An uppercase letter", met: /[A-Z]/.test(currentPassword) },
@@ -81,6 +95,7 @@ const RegisterPage = () => {
     { label: "A number", met: /[0-9]/.test(currentPassword) },
     { label: "A special character", met: /[^A-Za-z0-9]/.test(currentPassword) },
   ];
+
   const getPasswordStrength = (pass) => {
     let score = 0;
     if (pass.length >= 8) score++;
@@ -89,15 +104,17 @@ const RegisterPage = () => {
     if (/[^A-Za-z0-9]/.test(pass)) score++;
     return score;
   };
+
   const strengthScore = getPasswordStrength(currentPassword);
   const strengthLabels = ["Too Weak", "Weak", "Fair", "Strong", "Excellent"];
   const strengthColors = [
     "bg-surface-muted",
-    "bg-primary/100",
+    "bg-red-500",
     "bg-amber-500",
     "bg-blue-500",
     "bg-emerald-500",
   ];
+
   useGSAP(
     () => {
       gsap.from(".auth-card", {
@@ -117,25 +134,42 @@ const RegisterPage = () => {
     },
     { scope: containerRef },
   );
+
   const onSubmit = async (data) => {
     setServerError(null);
     setLoading(true);
     try {
+      const sanitizedPhone = data.phone.replace(/[\s\-()]/g, "");
       const res = await authService.register({
-        fullName: data.fullName,
-        email: data.email,
-        phone: data.phone,
+        fullName: data.fullName.trim(),
+        email: data.email.trim(),
+        phone: sanitizedPhone,
         password: data.password,
       });
-      toast.success("Registration successful! Please verify your email.");
-      await authService.requestEmailVerification(res.data.user.email);
-      navigate("/verify-email", { state: { email: res.data.user.email } });
+
+      toast.success("Account created successfully! Please verify your email.");
+
+      const targetEmail = res?.data?.user?.email || data.email.trim();
+
+      // Trigger verification code request; don't block navigation if already sent
+      try {
+        await authService.requestEmailVerification(targetEmail);
+      } catch (verifErr) {
+        console.warn("Verification code email request notice:", verifErr);
+      }
+
+      navigate("/verify-email", { state: { email: targetEmail } });
     } catch (err) {
-      setServerError(err.message || "Registration failed. Please try again.");
+      const message = getApiErrorMessage(
+        err,
+        "Registration failed. Please check your information and try again.",
+      );
+      setServerError(message);
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <div
       ref={containerRef}
@@ -165,10 +199,13 @@ const RegisterPage = () => {
         {serverError && (
           <div
             role="alert"
-            className="p-3.5 bg-primary/10 border border-primary/25 text-red-800 rounded-xl text-xs flex items-start gap-2.5 animate-in fade-in duration-200"
+            className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 rounded-xl text-xs flex items-start gap-2.5 animate-in fade-in duration-200"
           >
-            <AlertCircle size={16} className="text-primary shrink-0 mt-0.5" />
-            <span>{serverError}</span>
+            <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1 leading-relaxed">
+              <span className="font-semibold block mb-0.5">Registration Issue</span>
+              <span>{serverError}</span>
+            </div>
           </div>
         )}
 

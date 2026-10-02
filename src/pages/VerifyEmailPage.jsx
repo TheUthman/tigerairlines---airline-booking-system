@@ -4,19 +4,24 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Mail, AlertCircle, ArrowLeft, RefreshCw, Plane } from "lucide-react";
 import authService from "../services/authService";
+import { getApiErrorMessage } from "../services/apiClient";
 import Button from "../components/ui/Button";
 import { useToast } from "../components/ui/Toast";
+
 const VerifyEmailPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
-  const email = location.state?.email || "";
-  const [verificationToken, setVerificationToken] = useState("");
-  const [cooldown, setCooldown] = useState(30);
+  const searchParams = new URLSearchParams(location.search);
+  const email = location.state?.email || searchParams.get("email") || "";
+  const tokenFromUrl = searchParams.get("token") || "";
+  const [verificationToken, setVerificationToken] = useState(tokenFromUrl);
+  const [cooldown, setCooldown] = useState(60);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const containerRef = useRef(null);
+
   useEffect(() => {
     let timer;
     if (cooldown > 0) {
@@ -28,6 +33,7 @@ const VerifyEmailPage = () => {
       if (timer) clearInterval(timer);
     };
   }, [cooldown]);
+
   useGSAP(
     () => {
       gsap.from(".verify-card", {
@@ -47,10 +53,11 @@ const VerifyEmailPage = () => {
     },
     { scope: containerRef },
   );
+
   const handleVerify = async (e) => {
     if (e) e.preventDefault();
     if (!verificationToken.trim()) {
-      setErrorMsg("Please paste the verification token from your email.");
+      setErrorMsg("Please enter or paste the verification token from your email.");
       return;
     }
     setLoading(true);
@@ -62,24 +69,37 @@ const VerifyEmailPage = () => {
       );
       navigate("/login", { state: { email } });
     } catch (err) {
-      setErrorMsg(err.message || "Verification failed. Please try again.");
+      setErrorMsg(
+        getApiErrorMessage(
+          err,
+          "Verification failed. The token may be invalid or expired. Please request a new one.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
   };
+
   const handleResend = async () => {
     if (cooldown > 0 || resending) return;
+    if (!email) {
+      toast.error("No email address provided. Please return to registration.");
+      return;
+    }
     setResending(true);
     setErrorMsg(null);
     try {
       const res = await authService.requestEmailVerification(email);
       toast.info(
-        res.data?.message || "A new verification email has been requested.",
+        res?.data?.message || "A new verification email has been requested.",
       );
-      setCooldown(30);
+      setCooldown(60);
       setVerificationToken("");
     } catch (err) {
-      toast.error("Failed to resend code. Please try again later.");
+      setCooldown(15);
+      toast.error(
+        getApiErrorMessage(err, "Failed to resend verification code. Please try again later."),
+      );
     } finally {
       setResending(false);
     }
@@ -117,10 +137,13 @@ const VerifyEmailPage = () => {
         {errorMsg && (
           <div
             role="alert"
-            className="p-3.5 bg-primary/10 border border-primary/25 text-red-800 rounded-xl text-xs flex items-start gap-2.5 animate-in fade-in duration-200"
+            className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 rounded-xl text-xs flex items-start gap-2.5 animate-in fade-in duration-200"
           >
-            <AlertCircle size={16} className="text-primary shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
+            <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1 leading-relaxed">
+              <span className="font-semibold block mb-0.5">Verification Error</span>
+              <span>{errorMsg}</span>
+            </div>
           </div>
         )}
 
@@ -150,26 +173,37 @@ const VerifyEmailPage = () => {
         </form>
 
         {/* Resend Cooldown */}
-        <div className="text-center space-y-3 pt-2 border-t border-border">
-          <div className="text-xs text-muted">
-            Didn't receive the email?{" "}
-            {cooldown > 0 ? (
-              <span className="text-muted font-mono font-semibold">
-                Resend available in {cooldown}s
+        <div className="text-center space-y-3 pt-4 border-t border-border">
+          <p className="text-xs text-muted">Didn't receive the email or token expired?</p>
+          
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={cooldown > 0 || resending}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 ${
+                cooldown > 0
+                  ? "bg-surface text-muted/70 border border-border filter blur-[0.8px] opacity-60 cursor-not-allowed pointer-events-none select-none"
+                  : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 cursor-pointer active:scale-95"
+              }`}
+            >
+              <RefreshCw
+                size={13}
+                className={resending ? "animate-spin" : cooldown > 0 ? "opacity-50" : ""}
+              />
+              {resending ? (
+                "Sending New Code..."
+              ) : cooldown > 0 ? (
+                <span>Resend Code in <span className="font-mono font-bold text-foreground/80">{cooldown}s</span></span>
+              ) : (
+                "Resend Verification Code"
+              )}
+            </button>
+
+            {cooldown > 0 && (
+              <span className="text-[11px] text-muted">
+                Please wait for the timer before requesting another token.
               </span>
-            ) : (
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={resending}
-                className="font-bold text-primary hover:underline cursor-pointer inline-flex items-center gap-1"
-              >
-                <RefreshCw
-                  size={12}
-                  className={resending ? "animate-spin" : ""}
-                />
-                Resend Verification Email
-              </button>
             )}
           </div>
 
@@ -182,14 +216,6 @@ const VerifyEmailPage = () => {
               Back to Login
             </Link>
           </div>
-        </div>
-
-        {/* Verification tip */}
-        <div className="p-3 bg-background rounded-xl border border-border text-[11px] text-muted text-center">
-          <span className="font-semibold text-foreground">
-            Verification tip:
-          </span>{" "}
-          Use the token supplied by the verification email.
         </div>
       </div>
     </div>

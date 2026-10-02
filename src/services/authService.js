@@ -6,21 +6,21 @@ import apiClient, { extractData } from "./apiClient";
  */
 class AuthService {
   normalizeAuthResponse(res) {
-    const payload = extractData(res).data || {};
-    const isAdmin = payload.role === "ADMIN";
+    const payload = extractData(res).data || res?.data || {};
+    const isAdmin = payload.role === "ADMIN" || payload.role === "ADMINISTRATOR";
     return {
       success: true,
       data: {
-        token: payload.token,
+        token: payload.token || payload.accessToken,
         refreshToken: payload.refreshToken,
         user: {
-          id: payload.userId,
-          name: [payload.firstName, payload.lastName].filter(Boolean).join(" "),
-          firstName: payload.firstName,
-          lastName: payload.lastName,
-          email: payload.email,
+          id: payload.userId || payload.id || payload.user?.id,
+          name: [payload.firstName, payload.lastName].filter(Boolean).join(" ") || payload.name || payload.user?.name || "",
+          firstName: payload.firstName || payload.user?.firstName,
+          lastName: payload.lastName || payload.user?.lastName,
+          email: payload.email || payload.user?.email,
           // The UI's existing guards use ADMINISTRATOR; the JWT still retains ADMIN.
-          role: isAdmin ? "ADMINISTRATOR" : "CUSTOMER"
+          role: isAdmin ? "ADMINISTRATOR" : (payload.role || "CUSTOMER")
         }
       }
     };
@@ -64,15 +64,17 @@ class AuthService {
   /**
    * POST /api/auth/register
    * Register a new user and issue JWT + refresh token.
-   * @param {{ firstName: string, lastName: string, email: string, password: string }} payload
+   * @param {{ firstName: string, lastName: string, email: string, password: string, phone?: string }} payload
    */
   async register(payload) {
     const fullName = payload.fullName?.trim() || "";
     const [firstName, ...lastNameParts] = fullName.split(/\s+/);
     const res = await apiClient.post("/auth/register", {
-      firstName: payload.firstName || firstName,
-      lastName: payload.lastName || lastNameParts.join(" ") || firstName,
+      firstName: payload.firstName || firstName || "",
+      lastName: payload.lastName || lastNameParts.join(" ") || firstName || "",
       email: payload.email,
+      phone: payload.phone,
+      phoneNumber: payload.phone,
       password: payload.password
     });
     const result = this.normalizeAuthResponse(res);

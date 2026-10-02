@@ -17,6 +17,7 @@ import { useAppDispatch, useAppSelector } from "../app/store";
 import { setConfirmedBooking } from "../features/booking/bookingSlice";
 import { bookingService, paymentService, pricingService } from "../services";
 import { useToast } from "../components/ui/Toast";
+import { BookingProgress, LoadingOverlay } from "../components/ui/LoadingState";
 
 const PaymentPage = () => {
   const navigate = useNavigate();
@@ -181,7 +182,9 @@ const PaymentPage = () => {
 
   return (
     <div className="bg-background py-10 px-4 md:px-8">
+      {isProcessing && <LoadingOverlay label="Processing your payment..." />}
       <div className="max-w-6xl mx-auto">
+        <BookingProgress activeStep={6} />
         <button
           onClick={() => navigate("/book")}
           className="inline-flex items-center gap-2 text-xs font-bold text-primary hover:underline mb-6 cursor-pointer"

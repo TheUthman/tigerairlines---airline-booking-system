@@ -4,6 +4,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopbar from "./AdminTopbar";
+import { RouteProgress } from "../ui/LoadingState";
 const AdminLayout = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
@@ -14,7 +15,7 @@ const AdminLayout = () => {
       gsap.fromTo(
         pageContainerRef.current,
         { opacity: 0, y: 4 },
-        { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" }
+        { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" },
       );
     }
   }, [location.pathname]);
@@ -28,43 +29,39 @@ const AdminLayout = () => {
     if (path.includes("/users")) return "User Access & Roles";
     return "Operations Console";
   };
-  return <div className="flex min-h-screen bg-background font-sans">
-      {
-    /* Desktop Sidebar */
-  }
+  return (
+    <div className="flex min-h-screen bg-background font-sans">
+      <RouteProgress />
+      {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <AdminSidebar />
       </div>
 
-      {
-    /* Mobile Drawer Sidebar */
-  }
-      {mobileSidebarOpen && <div className="fixed inset-0 z-50 lg:hidden">
+      {/* Mobile Drawer Sidebar */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
           <div
-    className="fixed inset-0 bg-black/60 backdrop-blur-xs"
-    onClick={() => setMobileSidebarOpen(false)}
-  />
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
           <div className="relative z-10 w-64 h-full">
             <AdminSidebar onClose={() => setMobileSidebarOpen(false)} />
           </div>
-        </div>}
+        </div>
+      )}
 
-      {
-    /* Main Content Area */
-  }
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <AdminTopbar
-    title={getPageTitle(location.pathname)}
-    onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-  />
+          title={getPageTitle(location.pathname)}
+          onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+        />
         <main ref={pageContainerRef} className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>
-    </div>;
+    </div>
+  );
 };
 var stdin_default = AdminLayout;
-export {
-  AdminLayout,
-  stdin_default as default
-};
+export { AdminLayout, stdin_default as default };

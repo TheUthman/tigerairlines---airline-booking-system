@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plane,
@@ -8,6 +8,7 @@ import {
   Award,
   FileText,
   RotateCcw,
+  LoaderCircle,
 } from "lucide-react";
 import { bookingService, passengerService } from "../services";
 import { useAppSelector } from "../app/store";
@@ -16,6 +17,7 @@ import Badge from "../components/ui/Badge";
 import { useToast } from "../components/ui/Toast";
 import EmptyState from "../components/ui/EmptyState";
 import BoardingPass from "../features/ticket/BoardingPass";
+import { Skeleton, TripCardSkeleton } from "../components/ui/Skeleton";
 
 const MyTripsPage = () => {
   const toast = useToast();
@@ -24,7 +26,12 @@ const MyTripsPage = () => {
   const [activeTab, setActiveTab] = useState("upcoming");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingTravelers, setIsLoadingTravelers] = useState(true);
+  const [isSavingTraveler, setIsSavingTraveler] = useState(false);
+  const [deletingTravelerId, setDeletingTravelerId] = useState(null);
   const [error, setError] = useState(null);
+  const touchStartY = useRef(null);
   const [selectedBookingForPass, setSelectedBookingForPass] = useState(null);
   const [travelers, setTravelers] = useState(() => {
     try {
@@ -47,28 +54,29 @@ const MyTripsPage = () => {
   const profileName = user?.name || "Traveler";
   const profileEmail = user?.email || "Complete your account profile";
 
+  const loadTrips = async ({ refresh = false } = {}) => {
+    if (refresh) setIsRefreshing(true);
+    else setLoading(true);
+    setError(null);
+    try {
+      const bookingsRes = await bookingService.getBookings();
+      setBookings(Array.isArray(bookingsRes?.data) ? bookingsRes.data : []);
+    } catch (err) {
+      setError(err?.message || "Unable to load your trips right now.");
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+      setPullDistance(0);
+    }
+  };
+
+  const [pullDistance, setPullDistance] = useState(0);
   useEffect(() => {
-    const loadTrips = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const bookingsRes = await bookingService.getBookings();
-        setBookings(Array.isArray(bookingsRes?.data) ? bookingsRes.data : []);
-      } catch (err) {
-        setError(err?.message || "Unable to load your trips right now.");
-        setBookings([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadTrips();
-
     passengerService
       .getMyPassengers()
       .then((res) => {
-        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        if (res?.data && Array.isArray(res.data)) {
           setTravelers(res.data);
           try {
             localStorage.setItem(
@@ -78,10 +86,23 @@ const MyTripsPage = () => {
           } catch (e) {}
         }
       })
-      .catch(() => {
-        setTravelers([]);
-      });
+      .catch(() => {})
+      .finally(() => setIsLoadingTravelers(false));
   }, []);
+
+  const handleTouchStart = (event) => {
+    if (window.scrollY === 0) touchStartY.current = event.touches[0].clientY;
+  };
+  const handleTouchMove = (event) => {
+    if (touchStartY.current === null || window.scrollY !== 0) return;
+    const distance = event.touches[0].clientY - touchStartY.current;
+    setPullDistance(Math.min(Math.max(distance, 0), 88));
+  };
+  const handleTouchEnd = () => {
+    touchStartY.current = null;
+    if (pullDistance >= 72 && !isRefreshing) loadTrips({ refresh: true });
+    else setPullDistance(0);
+  };
 
   const saveTravelersToStorage = (list) => {
     setTravelers(list);
@@ -106,13 +127,26 @@ const MyTripsPage = () => {
       return;
     }
 
+    setIsSavingTraveler(true);
+    const optimisticId = `pending-${Date.now()}`;
+    const optimisticTraveler = {
+      ...newTraveler,
+      id: optimisticId,
+      pending: true,
+    };
+    setTravelers((current) => [...current, optimisticTraveler]);
     try {
       // POST /api/passengers
       const createdRes = await passengerService.createPassenger({
         ...newTraveler,
         documentNumber: newTraveler.passportNumber,
       });
-      const created = createdRes?.data || newTraveler;
+      const created = {
+        ...newTraveler,
+        ...(createdRes?.data || {}),
+        id: createdRes?.data?.id || optimisticId,
+        pending: false,
+      };
       const updated = [...travelers, created];
       saveTravelersToStorage(updated);
       setShowAddTravelerModal(false);
@@ -128,11 +162,17 @@ const MyTripsPage = () => {
         `Saved traveler profile for ${created.firstName} ${created.lastName}`,
       );
     } catch (err) {
+      setTravelers((current) =>
+        current.filter((traveler) => traveler.id !== optimisticId),
+      );
       toast.error(err?.message || "Failed to save passenger profile");
+    } finally {
+      setIsSavingTraveler(false);
     }
   };
 
   const handleDeleteTraveler = async (id, name) => {
+    setDeletingTravelerId(id);
     try {
       await passengerService.deletePassenger(id);
       const updated = travelers.filter((t) => t.id !== id);
@@ -140,13 +180,52 @@ const MyTripsPage = () => {
       toast.info(`Removed ${name} from saved travelers`);
     } catch (err) {
       toast.error(err?.message || `Failed to remove ${name}`);
+    } finally {
+      setDeletingTravelerId(null);
     }
   };
   const upcomingTrips = bookings.filter((b) => b.status !== "CANCELLED");
   const pastTrips = bookings.filter((b) => b.status === "CANCELLED");
   return (
-    <div className="bg-background py-10 px-4 md:px-8">
+    <div
+      className="bg-background py-10 px-4 md:px-8"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className="max-w-6xl mx-auto space-y-8">
+        {(pullDistance > 0 || isRefreshing) && (
+          <div
+            className="flex justify-center text-primary"
+            role="status"
+            aria-live="polite"
+          >
+            <LoaderCircle
+              size={20}
+              className={isRefreshing ? "animate-spin" : ""}
+            />
+            <span className="ml-2 text-xs font-semibold">
+              {isRefreshing
+                ? "Refreshing trips..."
+                : pullDistance >= 72
+                  ? "Release to refresh"
+                  : "Pull to refresh"}
+            </span>
+          </div>
+        )}
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            isLoading={isRefreshing}
+            onClick={() => loadTrips({ refresh: true })}
+            disabled={loading || isRefreshing}
+            aria-label="Refresh booking history"
+          >
+            <RotateCcw size={14} /> Refresh trips
+          </Button>
+        </div>
         {/* Customer Profile & Loyalty Points Balance Widget */}
         <div className="bg-gradient-to-r from-primary to-primary-dark rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
           <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-secondary/20 to-transparent pointer-events-none" />
@@ -192,6 +271,23 @@ const MyTripsPage = () => {
           </div>
         </div>
 
+        {error && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700"
+          >
+            <span>{error}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => loadTrips({ refresh: true })}
+              isLoading={isRefreshing}
+            >
+              Try again
+            </Button>
+          </div>
+        )}
+
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto border-b border-border pb-2">
           <button
@@ -229,7 +325,16 @@ const MyTripsPage = () => {
         {/* TAB 1: Upcoming Trips */}
         {activeTab === "upcoming" && (
           <div className="space-y-6">
-            {selectedBookingForPass ? (
+            {loading ? (
+              <div
+                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                aria-label="Loading bookings"
+              >
+                <TripCardSkeleton />
+                <TripCardSkeleton />
+              </div>
+            ) : error &&
+              bookings.length === 0 ? null : selectedBookingForPass ? (
               <div className="space-y-4">
                 <Button
                   variant="outline"
@@ -371,7 +476,16 @@ const MyTripsPage = () => {
         {/* TAB 2: Past / Cancelled Trips */}
         {activeTab === "past" && (
           <div className="space-y-6">
-            {pastTrips.length === 0 ? (
+            {loading ? (
+              <div
+                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                aria-label="Loading booking history"
+              >
+                <TripCardSkeleton />
+                <TripCardSkeleton />
+              </div>
+            ) : error && bookings.length === 0 ? null : pastTrips.length ===
+              0 ? (
               <EmptyState
                 title="No Past Trips"
                 description="Your flight history is clean with zero cancelled or past flights."
@@ -438,45 +552,86 @@ const MyTripsPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {travelers.map((t) => (
-                <div
-                  key={t.id}
-                  className="bg-surface rounded-2xl p-5 shadow-sm border border-border flex items-start justify-between gap-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-surface-muted text-foreground flex items-center justify-center font-bold text-sm shrink-0">
-                      <User size={18} />
-                    </div>
-                    <div className="space-y-1 text-xs">
-                      <p className="font-bold text-foreground text-sm">
-                        {t.firstName} {t.lastName}
-                      </p>
-                      <p className="text-muted font-mono">
-                        Passport: {t.passportNumber}
-                      </p>
-                      <p className="text-muted">
-                        Nationality: {t.nationality} • DOB: {t.dateOfBirth}
-                      </p>
-                      {t.frequentFlyerNumber && (
-                        <span className="inline-block text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded">
-                          Miles ID: {t.frequentFlyerNumber}
-                        </span>
-                      )}
+              {isLoadingTravelers && travelers.length === 0 ? (
+                <>
+                  <div className="bg-surface rounded-2xl p-5 border border-border flex gap-3">
+                    <Skeleton variant="circle" className="w-10 h-10" />
+                    <div className="space-y-2">
+                      <Skeleton className="w-32 h-4" />
+                      <Skeleton className="w-44 h-3" />
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleDeleteTraveler(t.id, `${t.firstName} ${t.lastName}`)
-                    }
-                    className="p-1.5 text-muted hover:text-red-600 rounded-lg transition"
-                    title="Delete traveler"
+                  <div className="bg-surface rounded-2xl p-5 border border-border flex gap-3">
+                    <Skeleton variant="circle" className="w-10 h-10" />
+                    <div className="space-y-2">
+                      <Skeleton className="w-28 h-4" />
+                      <Skeleton className="w-40 h-3" />
+                    </div>
+                  </div>
+                </>
+              ) : travelers.length === 0 ? (
+                <EmptyState
+                  title="No saved travelers"
+                  description="Add passenger details once to speed up future bookings."
+                />
+              ) : (
+                travelers.map((t) => (
+                  <div
+                    key={t.id}
+                    className="bg-surface rounded-2xl p-5 shadow-sm border border-border flex items-start justify-between gap-4"
                   >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-surface-muted text-foreground flex items-center justify-center font-bold text-sm shrink-0">
+                        <User size={18} />
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <p className="font-bold text-foreground text-sm">
+                          {t.firstName} {t.lastName}
+                        </p>
+                        {t.pending && (
+                          <p
+                            className="inline-flex items-center gap-1 text-primary text-[11px] font-semibold"
+                            role="status"
+                          >
+                            <LoaderCircle size={12} className="animate-spin" />{" "}
+                            Saving traveler...
+                          </p>
+                        )}
+                        <p className="text-muted font-mono">
+                          Passport: {t.passportNumber}
+                        </p>
+                        <p className="text-muted">
+                          Nationality: {t.nationality} • DOB: {t.dateOfBirth}
+                        </p>
+                        {t.frequentFlyerNumber && (
+                          <span className="inline-block text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded">
+                            Miles ID: {t.frequentFlyerNumber}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={t.pending || deletingTravelerId === t.id}
+                      onClick={() =>
+                        handleDeleteTraveler(
+                          t.id,
+                          `${t.firstName} ${t.lastName}`,
+                        )
+                      }
+                      className="p-1.5 text-muted hover:text-red-600 rounded-lg transition disabled:opacity-50"
+                      title="Delete traveler"
+                    >
+                      {deletingTravelerId === t.id ? (
+                        <LoaderCircle size={16} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -613,7 +768,12 @@ const MyTripsPage = () => {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" variant="primary">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    isLoading={isSavingTraveler}
+                    disabled={isSavingTraveler}
+                  >
                     Save Traveler
                   </Button>
                 </div>

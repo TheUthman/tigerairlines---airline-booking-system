@@ -100,6 +100,70 @@ body {
   animation: password-rule-check 180ms ease-out both;
 }
 
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--surface-muted) 25%,
+    color-mix(in srgb, var(--surface-muted), var(--surface) 55%) 45%,
+    var(--surface-muted) 65%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.35s ease-in-out infinite;
+}
+
+.route-progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 110;
+  height: 3px;
+  width: 100%;
+  transform-origin: left;
+  background: var(--primary);
+  animation: route-progress 450ms ease-out both;
+}
+
+.indeterminate-progress-track {
+  height: 3px;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+
+.indeterminate-progress-track::after {
+  display: block;
+  width: 38%;
+  height: 100%;
+  content: "";
+  background: var(--primary);
+  animation: indeterminate-progress 1.1s ease-in-out infinite;
+}
+
+@keyframes route-progress {
+  0% {
+    transform: scaleX(0);
+  }
+  70% {
+    transform: scaleX(0.82);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes indeterminate-progress {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(280%);
+  }
+}
+
 input,
 textarea,
 select {

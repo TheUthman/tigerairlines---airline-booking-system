@@ -126,24 +126,52 @@ export const getApiErrorMessage = (
   if (!error) return fallback;
 
   if (error.response) {
+    const data = error.response?.data;
+    if (typeof data === "string" && data.trim()) return data;
+
     const serverMessage =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      error.response?.data?.detail;
+      data?.message ||
+      data?.error ||
+      data?.detail ||
+      (Array.isArray(data?.errors)
+        ? data.errors.map((e) => e.msg || e.message || e).filter(Boolean).join(", ")
+        : null) ||
+      (data?.errors && typeof data.errors === "object"
+        ? Object.values(data.errors).flat().filter(Boolean).join(", ")
+        : null);
 
     if (serverMessage) return serverMessage;
 
+    if (error.response.status === 400) {
+      return "Invalid request. Please verify your submission details.";
+    }
+    if (error.response.status === 401) {
+      return "Your session has expired or credentials are invalid.";
+    }
+    if (error.response.status === 403) {
+      return "You do not have permission to perform this action.";
+    }
     if (error.response.status === 404) {
       return "The requested record could not be found.";
     }
-
-    if (error.response.status === 500) {
-      return "The server is currently unavailable. Please try again in a moment.";
+    if (error.response.status === 409) {
+      return "An account with this email address already exists. Please log in.";
+    }
+    if (error.response.status >= 500) {
+      return "The server encountered an error. Please try again in a moment.";
     }
   }
 
+  if (
+    error.code === "ECONNABORTED" ||
+    error.code === "ETIMEDOUT" ||
+    (typeof error.message === "string" && error.message.toLowerCase().includes("timeout"))
+  ) {
+    return "Request timed out. The server is taking too long to respond.";
+  }
+
   if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
-    return "Unable to connect to the backend right now. Please check your connection and try again.";
+    return "Unable to connect to the backend server. Please ensure the backend service is running and try again.";
   }
 
   return error.message || fallback;

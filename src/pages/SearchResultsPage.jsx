@@ -329,7 +329,15 @@ const SearchResultsPage = () => {
           {/* Flight Cards List */}
           <div className="lg:col-span-3 space-y-4">
             {loading ? (
-              <div className="space-y-4">
+              <div
+                className="space-y-4"
+                role="status"
+                aria-label="Searching available flights"
+              >
+                <div className="indeterminate-progress-track rounded-full" />
+                <p className="text-xs text-muted">
+                  Searching available flights...
+                </p>
                 <FlightCardSkeleton />
                 <FlightCardSkeleton />
                 <FlightCardSkeleton />
