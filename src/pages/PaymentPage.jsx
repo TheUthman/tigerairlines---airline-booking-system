@@ -122,10 +122,15 @@ const PaymentPage = () => {
       }
 
       // Step 1: Create booking and lock seat for 10 min (Booking Service)
+      const parsedPassengerId = Number(passenger.id);
+      const safePassengerId = (!isNaN(parsedPassengerId) && parsedPassengerId > 0) ? parsedPassengerId : 1;
+      const parsedFlightId = Number(flight?.id);
+      const safeFlightId = (!isNaN(parsedFlightId) && parsedFlightId > 0) ? parsedFlightId : 101;
+
       const bookingPayload = {
-        flightId: flight?.id || 101,
+        flightId: safeFlightId,
         flightNumber: flight?.flightNumber || "TG-101",
-        passengerId: passenger.id || 1,
+        passengerId: safePassengerId,
         passengerName: `${passenger.firstName} ${passenger.lastName}`,
         origin: `${flight?.origin?.city || "Lagos"} (${flight?.origin?.code || "LOS"})`,
         destination: `${flight?.destination?.city || "Abuja"} (${flight?.destination?.code || "ABV"})`,

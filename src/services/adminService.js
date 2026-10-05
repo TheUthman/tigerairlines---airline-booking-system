@@ -40,7 +40,11 @@ export const adminService = {
    */
   async getUsers() {
     const res = await apiClient.get("/auth/users");
-    return extractData(res, []);
+    const result = extractData(res, []);
+    const userList = Array.isArray(result.data)
+      ? result.data
+      : (Array.isArray(result.data?.content) ? result.data.content : []);
+    return { ...result, data: userList };
   },
 
   /**
