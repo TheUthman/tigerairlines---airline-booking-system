@@ -12,14 +12,14 @@ const EmptyState = ({
 }) => {
   const primaryLabel = actionLabel || actionText;
   return <div
-    className={`bg-surface rounded-3xl p-8 md:p-12 text-center border border-border shadow-xs max-w-lg mx-auto ${className}`}
+    className={`mx-auto max-w-lg rounded-xl border border-border bg-surface p-8 text-center shadow-sm md:p-10 ${className}`}
   >
-      {icon && <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-xs">
+      {icon && <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
           {icon}
         </div>}
 
-      <h3 className="text-lg font-black text-foreground tracking-tight">{title}</h3>
-      <p className="text-xs text-muted mt-1.5 max-w-sm mx-auto leading-relaxed">
+      <h3 className="text-lg font-semibold tracking-tight text-foreground">{title}</h3>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
         {description}
       </p>
 

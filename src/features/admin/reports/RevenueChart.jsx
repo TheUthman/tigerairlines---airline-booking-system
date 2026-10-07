@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { useTheme } from "../../../context/ThemeContext";
 import { getThemeColors } from "../../../utils/themeColors";
+import { formatNaira } from "../../../utils/formatNaira";
 
 const RevenueChart = ({ data }) => {
   const { theme } = useTheme();
@@ -42,10 +43,14 @@ const RevenueChart = ({ data }) => {
     fontSize={11}
     tickLine={false}
     axisLine={false}
-    tickFormatter={(val) => `$${val / 1e3}k`}
+    tickFormatter={(value) =>
+      value >= 1_000_000
+        ? `₦${(value / 1_000_000).toFixed(1)}m`
+        : `₦${Math.round(value / 1_000)}k`
+    }
   />
           <Tooltip
-    formatter={(value) => [`$${Number(value).toLocaleString()}`, ""]}
+    formatter={(value) => [formatNaira(Number(value)), ""]}
     contentStyle={{
       backgroundColor: colors.surface,
       color: colors.foreground,
@@ -63,7 +68,7 @@ const RevenueChart = ({ data }) => {
           <Area
     type="monotone"
     dataKey="revenue"
-    name="Actual Revenue ($)"
+    name="Actual revenue (NGN)"
     stroke={colors.primary}
     strokeWidth={3}
     fillOpacity={1}
@@ -72,7 +77,7 @@ const RevenueChart = ({ data }) => {
           <Area
     type="monotone"
     dataKey="projected"
-    name="Projected Target ($)"
+    name="Revenue target (NGN)"
     stroke={colors.secondary}
     strokeWidth={2}
     strokeDasharray="4 4"

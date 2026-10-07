@@ -11,6 +11,7 @@ import {
   Check,
   AlertCircle,
   Sparkles,
+  X,
 } from "lucide-react";
 import flightService from "../services/flightService";
 import { useAppDispatch } from "../app/store";
@@ -19,6 +20,7 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import { FlightCardSkeleton } from "../components/ui/Skeleton";
 import { formatNaira } from "../utils/formatNaira";
+import FlightFiltersPanel from "../features/search/FlightFiltersPanel";
 const SearchResultsPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ const SearchResultsPage = () => {
   const [selectedAirline, setSelectedAirline] = useState("all");
   const [sortBy, setSortBy] = useState("price");
   const [expandedFlightId, setExpandedFlightId] = useState(null);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const originParam = searchParams.get("from") || "LOS";
   const destParam = searchParams.get("to") || "ABV";
   const cabinParam = searchParams.get("class") || "Economy";
@@ -111,6 +114,19 @@ const SearchResultsPage = () => {
       isMounted = false;
     };
   }, [originParam, destParam]);
+  const airlineOptions = [
+    ...new Set(flights.map((flight) => flight.airline).filter(Boolean)),
+  ].sort((first, second) => first.localeCompare(second));
+  const activeFilterCount =
+    Number(maxPrice < 15e5) +
+    Number(selectedStops !== "all") +
+    Number(selectedAirline !== "all");
+  const resetFilters = () => {
+    setMaxPrice(15e5);
+    setSelectedStops("all");
+    setSelectedAirline("all");
+  };
+
   const filteredFlights = flights
     .filter((flight) => {
       const price =
@@ -144,10 +160,10 @@ const SearchResultsPage = () => {
     navigate("/book");
   };
   return (
-    <div className="bg-background py-8 px-4 md:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <main className="page-container space-y-6 py-8 md:py-10">
+      <div className="mx-auto max-w-7xl space-y-6">
         {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div role="alert" className="rounded-xl border border-danger/25 bg-danger/5 px-4 py-3 text-sm text-danger">
             {error}
           </div>
         )}
@@ -167,7 +183,7 @@ const SearchResultsPage = () => {
                 <ArrowRight size={20} className="inline text-primary" />{" "}
                 {destParam}
               </h1>
-              <span className="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-full border border-primary/20">
+              <span className="rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-xs font-semibold text-primary-dark dark:text-primary">
                 {cabinParam} Class
               </span>
             </div>
@@ -183,7 +199,7 @@ const SearchResultsPage = () => {
         </div>
 
         {/* ±3 Days Price Flexibility Strip */}
-        <div className="bg-surface rounded-2xl p-4 shadow-sm border border-border overflow-x-auto">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-surface p-4 shadow-sm">
           <div className="flex items-center gap-2 min-w-[650px] justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted pl-2 shrink-0">
               ±3 Days Flexibility:
@@ -192,7 +208,7 @@ const SearchResultsPage = () => {
               <button
                 key={item.offset}
                 type="button"
-                className={`flex-1 py-2 px-3 rounded-xl border text-center transition cursor-pointer relative ${item.isSelected ? "bg-primary text-white border-primary shadow-md" : "bg-background hover:bg-primary/10 text-foreground border-border"}`}
+                className={`relative flex-1 rounded-xl border px-3 py-2.5 text-center transition-colors ${item.isSelected ? "border-primary bg-primary text-on-primary shadow-sm" : "border-border bg-background text-foreground"}`}
               >
                 {item.isCheapest && (
                   <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-secondary text-on-secondary font-black text-[9px] uppercase px-1.5 py-0.2 rounded shadow-2xs">
@@ -200,12 +216,12 @@ const SearchResultsPage = () => {
                   </span>
                 )}
                 <p
-                  className={`text-[11px] font-bold ${item.isSelected ? "text-white" : "text-foreground"}`}
+                  className={`text-xs font-semibold ${item.isSelected ? "text-on-primary" : "text-foreground"}`}
                 >
                   {item.dayName}, {item.monthDay}
                 </p>
                 <p
-                  className={`text-xs font-mono font-black mt-0.5 ${item.isSelected ? "text-white" : "text-primary"}`}
+                  className={`mt-0.5 font-mono text-sm font-semibold ${item.isSelected ? "text-on-primary" : "text-primary-dark dark:text-primary"}`}
                 >
                   {formatNaira(item.price)}
                 </p>
@@ -214,120 +230,65 @@ const SearchResultsPage = () => {
           </div>
         </div>
 
-        {/* Main Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-surface rounded-3xl p-6 shadow-sm border border-border space-y-6 sticky top-20">
-              <div className="flex items-center justify-between pb-3 border-b border-border">
-                <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                  <Filter size={16} className="text-primary" /> Filter Flights
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMaxPrice(15e5);
-                    setSelectedStops("all");
-                    setSelectedAirline("all");
-                  }}
-                  className="text-[11px] text-muted hover:text-primary font-semibold"
-                >
-                  Reset All
-                </button>
-              </div>
-
-              {/* Price Slider */}
-              <div>
-                <div className="flex justify-between text-xs font-bold text-foreground mb-1.5">
-                  <span>Max Ticket Price</span>
-                  <span className="text-primary font-mono">
-                    {formatNaira(maxPrice)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="30000"
-                  max="1500000"
-                  step="10000"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="w-full accent-primary cursor-pointer"
+          {/* Main Content Layout */}
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
+            <aside className="hidden lg:col-span-1 lg:block">
+              <div className="sticky top-24">
+                <FlightFiltersPanel
+                  maxPrice={maxPrice}
+                  setMaxPrice={setMaxPrice}
+                  selectedStops={selectedStops}
+                  setSelectedStops={setSelectedStops}
+                  selectedAirline={selectedAirline}
+                  setSelectedAirline={setSelectedAirline}
+                  airlineOptions={airlineOptions}
+                  onReset={resetFilters}
+                  idPrefix="desktop-filters"
                 />
               </div>
+            </aside>
 
-              {/* Stops Filter */}
-              <div>
-                <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
-                  Stops
-                </label>
-                <div className="space-y-2 text-xs text-foreground">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="stops"
-                      checked={selectedStops === "all"}
-                      onChange={() => setSelectedStops("all")}
-                      className="accent-primary"
-                    />
-                    <span>All Flights</span>
+            <section className="space-y-4 lg:col-span-3" aria-label="Flight search results">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                <p className="text-sm font-medium text-muted" aria-live="polite">
+                  {loading
+                    ? "Searching available flights..."
+                    : `${filteredFlights.length} ${filteredFlights.length === 1 ? "flight" : "flights"} available`}
+                </p>
+                <div className="flex w-full items-center gap-2 sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setFilterDrawerOpen(true)}
+                    aria-haspopup="dialog"
+                    aria-expanded={filterDrawerOpen}
+                    aria-controls="mobile-filter-dialog"
+                    className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
+                  >
+                    <Filter size={16} aria-hidden="true" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-on-primary">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
+                  <label htmlFor="flight-sort" className="sr-only">
+                    Sort flights
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="stops"
-                      checked={selectedStops === "direct"}
-                      onChange={() => setSelectedStops("direct")}
-                      className="accent-primary"
-                    />
-                    <span>Non-stop only</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="stops"
-                      checked={selectedStops === "1stop"}
-                      onChange={() => setSelectedStops("1stop")}
-                      className="accent-primary"
-                    />
-                    <span>1 Stop</span>
-                  </label>
+                  <select
+                    id="flight-sort"
+                    value={sortBy}
+                    onChange={(event) => setSortBy(event.target.value)}
+                    className="min-h-10 flex-1 rounded-xl border border-border bg-surface px-3 text-sm font-medium text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:flex-none"
+                  >
+                    <option value="price">Lowest price</option>
+                    <option value="duration">Shortest duration</option>
+                    <option value="departure">Earliest departure</option>
+                  </select>
                 </div>
               </div>
 
-              {/* Sort By */}
-              <div>
-                <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
-                  Sort Results By
-                </label>
-                <div className="grid grid-cols-3 gap-1 bg-surface-muted p-1 rounded-xl text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setSortBy("price")}
-                    className={`py-1.5 rounded-lg font-semibold transition cursor-pointer ${sortBy === "price" ? "bg-surface text-primary shadow-xs" : "text-muted"}`}
-                  >
-                    Price
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSortBy("duration")}
-                    className={`py-1.5 rounded-lg font-semibold transition cursor-pointer ${sortBy === "duration" ? "bg-surface text-primary shadow-xs" : "text-muted"}`}
-                  >
-                    Duration
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSortBy("departure")}
-                    className={`py-1.5 rounded-lg font-semibold transition cursor-pointer ${sortBy === "departure" ? "bg-surface text-primary shadow-xs" : "text-muted"}`}
-                  >
-                    Depart
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Flight Cards List */}
-          <div className="lg:col-span-3 space-y-4">
+              {/* Flight Cards List */}
             {loading ? (
               <div
                 className="space-y-4"
@@ -345,15 +306,13 @@ const SearchResultsPage = () => {
             ) : filteredFlights.length === 0 ? (
               /* Fallback State for No Matches: "No direct flights found — here are the closest options" */
               <div className="space-y-6">
-                <div className="bg-amber-50 border border-amber-300 rounded-3xl p-6 text-amber-950 space-y-2">
+                    <div className="space-y-2 rounded-xl border border-warning/25 bg-warning/5 p-5 text-foreground">
                   <div className="flex items-center gap-2 text-primary font-black text-sm">
                     <AlertCircle size={18} />
                     <span>No Direct Flights Found for This Search</span>
                   </div>
-                  <p className="text-xs text-amber-900 leading-relaxed">
-                    There are no scheduled direct flights matching your exact
-                    filters on this date. Here are the closest TigerAirlines
-                    flight options available from Lagos (LOS):
+                  <p className="text-sm leading-relaxed text-muted">
+                    No flights match the current filters. Adjust the filters or review other flights already listed in the schedule.
                   </p>
                 </div>
 
@@ -361,7 +320,7 @@ const SearchResultsPage = () => {
                   {closestOptions.map((f) => (
                     <div
                       key={f.id}
-                      className="bg-surface rounded-3xl p-6 shadow-sm border border-border hover:border-primary transition space-y-4"
+                      className="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm transition-colors hover:border-primary/50 md:p-6"
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
@@ -386,8 +345,8 @@ const SearchResultsPage = () => {
                           <p className="text-xs text-muted">{f.arrivalTime}</p>
                         </div>
                         <div>
-                          <p className="text-xl font-black text-foreground font-mono">
-                            ${f.priceEconomy}
+                          <p className="font-mono text-xl font-semibold text-foreground">
+                            {formatNaira(f.priceEconomy)}
                           </p>
                           <Button
                             size="sm"
@@ -435,7 +394,7 @@ const SearchResultsPage = () => {
                             </span>
                           </div>
                           {seatsLeft < 10 && (
-                            <span className="text-[10px] font-bold text-red-600 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/25">
+                            <span className="rounded-full border border-danger/20 bg-danger/10 px-2.5 py-1 text-xs font-semibold text-danger">
                               Only {seatsLeft} seats left!
                             </span>
                           )}
@@ -598,8 +557,8 @@ const SearchResultsPage = () => {
                           </div>
 
                           {/* Tier 2: Economy Flex */}
-                          <div className="bg-primary/10/40 rounded-2xl p-4 border-2 border-primary/60 flex flex-col justify-between space-y-4 relative shadow-xs">
-                            <div className="absolute -top-2.5 right-4 bg-primary text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                            <div className="relative flex flex-col justify-between space-y-4 rounded-xl border-2 border-primary/60 bg-primary-soft p-4 shadow-sm">
+                            <div className="absolute -top-2.5 right-4 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold text-on-primary">
                               Most Popular
                             </div>
                             <div className="space-y-2">
@@ -726,10 +685,65 @@ const SearchResultsPage = () => {
                 );
               })
             )}
-          </div>
+          </section>
         </div>
+
+        {filterDrawerOpen && (
+          <div className="fixed inset-0 z-50 bg-black/35">
+            <button
+              type="button"
+              onClick={() => setFilterDrawerOpen(false)}
+              aria-label="Close flight filters"
+              className="absolute inset-0 h-full w-full cursor-default"
+            />
+            <aside
+              id="mobile-filter-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mobile-filter-title"
+              className="relative ml-auto flex h-full w-full max-w-sm flex-col overflow-y-auto border-l border-border bg-background p-5 shadow-2xl"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+                    Refine your trip
+                  </p>
+                  <h2 id="mobile-filter-title" className="mt-1 text-xl font-semibold text-foreground">
+                    Flight filters
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFilterDrawerOpen(false)}
+                  aria-label="Close flight filters"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </div>
+              <FlightFiltersPanel
+                maxPrice={maxPrice}
+                setMaxPrice={setMaxPrice}
+                selectedStops={selectedStops}
+                setSelectedStops={setSelectedStops}
+                selectedAirline={selectedAirline}
+                setSelectedAirline={setSelectedAirline}
+                airlineOptions={airlineOptions}
+                onReset={resetFilters}
+                idPrefix="mobile-filters"
+              />
+              <button
+                type="button"
+                onClick={() => setFilterDrawerOpen(false)}
+                className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                Show {filteredFlights.length} {filteredFlights.length === 1 ? "flight" : "flights"}
+              </button>
+            </aside>
+          </div>
+        )}
       </div>
-    </div>
+    </main>
   );
 };
 var stdin_default = SearchResultsPage;

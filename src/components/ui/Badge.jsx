@@ -2,28 +2,30 @@ const Badge = ({
   children,
   variant = "neutral",
   size = "md",
-  className = ""
+  className = "",
 }) => {
   const variants = {
-    primary: "bg-primary/10 text-primary border border-primary/25",
-    accent: "bg-secondary/20 text-on-secondary border border-secondary/40",
-    success: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
-    warning: "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",
-    neutral: "bg-surface-muted text-foreground border border-border",
-    blue: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30"
+    primary: "border border-primary/25 bg-primary/10 text-primary-dark dark:text-primary",
+    accent: "border border-secondary/15 bg-secondary text-on-secondary",
+    success: "border border-success/20 bg-success/10 text-success dark:bg-success/15",
+    warning: "border border-warning/20 bg-warning/10 text-warning dark:bg-warning/15",
+    danger: "border border-danger/20 bg-danger/10 text-danger dark:bg-danger/15",
+    neutral: "border border-border bg-surface-muted text-foreground",
+    blue: "border border-info/20 bg-info/10 text-info dark:bg-info/15",
   };
   const sizes = {
-    sm: "text-[10px] px-2 py-0.5 font-semibold",
-    md: "text-xs px-2.5 py-1 font-medium"
+    sm: "px-2 py-0.5 text-[11px] font-medium",
+    md: "px-2.5 py-1 text-xs font-medium",
   };
-  return <span
-    className={`inline-flex items-center rounded-full uppercase tracking-wider ${variants[variant]} ${sizes[size]} ${className}`}
-  >
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-md ${variants[variant] || variants.neutral} ${sizes[size] || sizes.md} ${className}`}
+    >
       {children}
-    </span>;
+    </span>
+  );
 };
-var stdin_default = Badge;
-export {
-  Badge,
-  stdin_default as default
-};
+
+export { Badge };
+export default Badge;

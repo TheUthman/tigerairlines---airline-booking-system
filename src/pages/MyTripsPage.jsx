@@ -19,6 +19,27 @@ import EmptyState from "../components/ui/EmptyState";
 import BoardingPass from "../features/ticket/BoardingPass";
 import { Skeleton, TripCardSkeleton } from "../components/ui/Skeleton";
 
+const getAirportCode = (airport) => {
+  const value = typeof airport === "string" ? airport.trim() : airport?.code || "";
+  return value.match(/\(([A-Z0-9]{3})\)/)?.[1] || (/^[A-Z0-9]{3}$/.test(value) ? value : "");
+};
+
+const getRebookPath = (booking) => {
+  const origin = getAirportCode(booking.origin);
+  const destination = getAirportCode(booking.destination);
+  return origin && destination
+    ? `/search?from=${encodeURIComponent(origin)}&to=${encodeURIComponent(destination)}`
+    : "/search";
+};
+
+const maskPassportNumber = (passportNumber) => {
+  if (!passportNumber) return "Not provided";
+  const value = String(passportNumber);
+  return value.length > 4
+    ? `${value.slice(0, 2)}••••${value.slice(-2)}`
+    : "••••";
+};
+
 const MyTripsPage = () => {
   const toast = useToast();
   const navigate = useNavigate();
@@ -47,8 +68,8 @@ const MyTripsPage = () => {
     firstName: "",
     lastName: "",
     passportNumber: "",
-    nationality: "Nigerian",
-    dateOfBirth: "1995-01-01",
+    nationality: "",
+    dateOfBirth: "",
     frequentFlyerNumber: "",
   });
   const profileName = user?.name || "Traveler";
@@ -153,10 +174,10 @@ const MyTripsPage = () => {
       setNewTraveler({
         firstName: "",
         lastName: "",
-        passportNumber: "",
-        nationality: "Nigerian",
-        dateOfBirth: "1995-01-01",
-        frequentFlyerNumber: "",
+    passportNumber: "",
+    nationality: "",
+    dateOfBirth: "",
+    frequentFlyerNumber: "",
       });
       toast.success(
         `Saved traveler profile for ${created.firstName} ${created.lastName}`,
@@ -227,8 +248,8 @@ const MyTripsPage = () => {
           </Button>
         </div>
         {/* Customer Profile & Loyalty Points Balance Widget */}
-        <div className="bg-gradient-to-r from-primary to-primary-dark rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
-          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-secondary/20 to-transparent pointer-events-none" />
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#171717] p-6 text-white shadow-sm md:p-8">
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-radial from-primary/12 to-transparent" />
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-4">
@@ -245,28 +266,19 @@ const MyTripsPage = () => {
               </div>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-6">
+            <div className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.05] p-4 sm:p-5">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-secondary flex items-center gap-1.5">
-                  <Award size={14} /> Account Status
+                <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  <Award size={14} aria-hidden="true" /> Upcoming trips
                 </span>
-                <p className="text-2xl md:text-3xl font-black text-white mt-1">
-                  Active
+                <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+                  {upcomingTrips.length}
                 </p>
               </div>
-
-              <div className="space-y-1.5 w-full sm:w-48">
-                <div className="flex justify-between text-[11px] text-white/80 font-medium">
-                  <span>Travel profile</span>
-                  <span>{user ? "Synced" : "Pending"}</span>
-                </div>
-                <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-secondary to-secondary rounded-full"
-                    style={{ width: user ? "100%" : "30%" }}
-                  />
-                </div>
-              </div>
+              <div className="h-10 w-px bg-white/15" aria-hidden="true" />
+              <p className="max-w-36 text-xs leading-relaxed text-white/65">
+                Your active reservations, in one place.
+              </p>
             </div>
           </div>
         </div>
@@ -296,7 +308,7 @@ const MyTripsPage = () => {
               setActiveTab("upcoming");
               setSelectedBookingForPass(null);
             }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === "upcoming" ? "bg-primary text-white shadow-xs" : "text-muted hover:bg-surface-muted"}`}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === "upcoming" ? "bg-primary text-on-primary shadow-xs" : "text-muted hover:bg-surface-muted"}`}
           >
             Upcoming Trips ({upcomingTrips.length})
           </button>
@@ -306,7 +318,7 @@ const MyTripsPage = () => {
               setActiveTab("past");
               setSelectedBookingForPass(null);
             }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === "past" ? "bg-primary text-white shadow-xs" : "text-muted hover:bg-surface-muted"}`}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === "past" ? "bg-primary text-on-primary shadow-xs" : "text-muted hover:bg-surface-muted"}`}
           >
             Past & Cancelled ({pastTrips.length})
           </button>
@@ -316,7 +328,7 @@ const MyTripsPage = () => {
               setActiveTab("travelers");
               setSelectedBookingForPass(null);
             }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === "travelers" ? "bg-primary text-white shadow-xs" : "text-muted hover:bg-surface-muted"}`}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === "travelers" ? "bg-primary text-on-primary shadow-xs" : "text-muted hover:bg-surface-muted"}`}
           >
             Saved Travelers ({travelers.length})
           </button>
@@ -349,7 +361,7 @@ const MyTripsPage = () => {
             ) : upcomingTrips.length === 0 ? (
               <EmptyState
                 title="No Upcoming Flights"
-                description="You don't have any active bookings scheduled right now. Explore Nigerian routes and start your next journey."
+                description="No upcoming reservations are available. Browse flights to plan your next journey."
                 actionLabel="Book a Flight"
                 onAction={() => navigate("/search")}
               />
@@ -366,10 +378,14 @@ const MyTripsPage = () => {
                           PNR: {b.pnr}
                         </span>
                         <p className="text-xs text-muted mt-1">
-                          Booked on {new Date(b.createdAt).toLocaleDateString()}
+                          {b.createdAt
+                            ? `Booked on ${new Date(b.createdAt).toLocaleDateString()}`
+                            : "Booking date unavailable"}
                         </p>
                       </div>
-                      <Badge variant="success">Confirmed</Badge>
+                      <Badge variant={b.status === "CONFIRMED" ? "success" : "warning"}>
+                        {b.status === "CONFIRMED" ? "Confirmed" : b.status === "PENDING_PAYMENT" ? "Payment pending" : b.status || "Status unavailable"}
+                      </Badge>
                     </div>
 
                     <div className="flex items-center justify-between gap-4">
@@ -393,8 +409,8 @@ const MyTripsPage = () => {
                           size={18}
                           className="text-primary transform rotate-90 my-1"
                         />
-                        <span className="text-[10px] text-emerald-600 font-bold">
-                          Direct
+                        <span className="text-[10px] font-bold text-muted">
+                          {b.stops === 0 ? "Non-stop" : b.stops != null ? `${b.stops} stop${Number(b.stops) === 1 ? "" : "s"}` : "Route details"}
                         </span>
                       </div>
 
@@ -405,7 +421,7 @@ const MyTripsPage = () => {
                         <p className="text-lg font-black text-foreground">
                           {b.destination}
                         </p>
-                        <p className="text-xs text-muted font-mono">11:45</p>
+                        <p className="text-xs text-muted font-mono">{b.arrivalTime || "—"}</p>
                       </div>
                     </div>
 
@@ -423,7 +439,7 @@ const MyTripsPage = () => {
                           Seat
                         </span>
                         <span className="font-mono font-bold text-primary">
-                          {b.seatNumber || "12A"}
+                          {b.seatNumber || "Unassigned"}
                         </span>
                       </div>
                       <div>
@@ -455,7 +471,7 @@ const MyTripsPage = () => {
                             Manage
                           </Button>
                         </Link>
-                        <Link to={`/search?from=LOS&to=ABV`}>
+                        <Link to={getRebookPath(b)}>
                           <Button
                             variant="primary"
                             size="sm"
@@ -488,7 +504,7 @@ const MyTripsPage = () => {
               0 ? (
               <EmptyState
                 title="No Past Trips"
-                description="Your flight history is clean with zero cancelled or past flights."
+                description="Cancelled reservations will appear here."
               />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -501,7 +517,9 @@ const MyTripsPage = () => {
                       <span className="font-mono text-xs font-bold text-muted">
                         PNR: {b.pnr}
                       </span>
-                      <Badge variant="primary">Cancelled / Refunded</Badge>
+                      <Badge variant={b.paymentStatus === "REFUNDED" ? "success" : "default"}>
+                        {b.paymentStatus === "REFUNDED" ? "Cancelled · refunded" : "Cancelled"}
+                      </Badge>
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
@@ -598,7 +616,7 @@ const MyTripsPage = () => {
                           </p>
                         )}
                         <p className="text-muted font-mono">
-                          Passport: {t.passportNumber}
+                          Passport: {maskPassportNumber(t.passportNumber)}
                         </p>
                         <p className="text-muted">
                           Nationality: {t.nationality} • DOB: {t.dateOfBirth}
@@ -744,7 +762,7 @@ const MyTripsPage = () => {
 
                 <div>
                   <label className="block font-bold text-foreground mb-1">
-                    Druk Miles Frequent Flyer #
+                    TigerMiles Frequent Flyer #
                   </label>
                   <input
                     type="text"

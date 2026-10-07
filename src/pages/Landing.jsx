@@ -181,6 +181,8 @@ const Landing = () => {
   ];
   useGSAP(
     () => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
       const heroTimeline = gsap.timeline({ defaults: { ease: "power2.out" } });
       heroTimeline
         .from(".hero-headline-1", { y: 22, opacity: 0, duration: 0.45 })
@@ -256,6 +258,8 @@ const Landing = () => {
   );
   useGSAP(
     () => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
       if (testimonialContainerRef.current) {
         gsap.fromTo(
           testimonialContainerRef.current,
@@ -287,23 +291,23 @@ const Landing = () => {
   };
   return (
     <div ref={landingRef} className="bg-background">
-      <section className="relative min-h-[480px] md:min-h-[540px] overflow-hidden">
+      <section className="relative min-h-[500px] overflow-hidden md:min-h-[620px]">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600&auto=format&fit=crop&q=80')`,
+            backgroundImage: "url('/tiger-airlines-hero.png')",
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/25" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 pt-16 md:pt-24 pb-36">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-40 pt-16 md:px-8 md:pt-24">
           <div className="max-w-2xl text-white">
-            <p className="hero-headline-1 text-xs font-bold uppercase tracking-[0.2em] text-secondary mb-3">
+            <p className="hero-headline-1 mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
               TigerAirlines Nigeria
             </p>
-            <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
+            <h1 className="text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl md:text-7xl">
               <span className="hero-headline-1 block">
                 Nigeria connects the world
               </span>
@@ -320,7 +324,7 @@ const Landing = () => {
                     block: "center",
                   })
                 }
-                className="inline-flex items-center gap-2.5 bg-secondary hover:bg-secondary-hover text-on-secondary px-7 py-3 rounded-full font-bold text-sm md:text-base shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+                className="inline-flex min-h-12 items-center gap-2.5 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-on-primary shadow-lg shadow-black/15 transition-colors duration-150 hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer md:text-base"
               >
                 <span>Book now</span>
                 <Send size={16} className="transform rotate-45" />
@@ -356,52 +360,48 @@ const Landing = () => {
         {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-10">
           {destinations.map((dest) => (
-            <div
+            <button
+              type="button"
               key={dest.city}
               onClick={() => handleBookDeal(dest.code)}
-              className="destination-card relative rounded-2xl overflow-hidden shadow-md group cursor-pointer h-72 md:h-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+              className="destination-card group relative block h-72 w-full cursor-pointer overflow-hidden rounded-xl p-0 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 md:h-80"
             >
-              {}
               <img
                 src={dest.image}
-                alt={dest.city}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                alt=""
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-
-              {}
-              <div className="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-white/92 text-white flex items-center justify-center shadow-md ring-1 ring-orange-200">
+              <div className="absolute right-3.5 top-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 shadow-sm ring-1 ring-black/10">
                 <img
                   src="/logo.svg"
                   width="26"
                   height="26"
-                  alt="TigerAirlines logo"
+                  alt=""
                   className="object-contain"
                 />
               </div>
-
-              {}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-5 text-white">
-                <h3 className="text-xl font-bold tracking-tight">
+              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/30 to-transparent p-5 text-white">
+                <h3 className="text-xl font-semibold tracking-tight">
                   {dest.city}
                 </h3>
-                <p className="text-xs text-white/80 font-medium">
+                <p className="text-sm font-medium text-white/80">
                   {dest.cabin}
                 </p>
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <span className="text-xs text-white/70">From</span>
-                  <span className="text-lg font-extrabold text-white">
+                  <span className="text-lg font-semibold text-white">
                     {dest.price}
                   </span>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
         <div className="text-center">
           <button
             onClick={() => navigate("/destinations")}
-            className="inline-flex items-center justify-center px-8 py-2.5 rounded-full border border-primary text-primary font-bold text-sm hover:bg-primary hover:text-on-primary transition duration-200 cursor-pointer shadow-xs"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary px-6 text-sm font-semibold text-primary transition-colors duration-150 hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
           >
             Discover all destinations
           </button>
@@ -416,35 +416,36 @@ const Landing = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-10">
           {nigeriaHighlights.map((place, idx) => (
-            <div
+            <button
+              type="button"
               key={idx}
               onClick={() => handleBookDeal(place.code)}
-              className="nigeria-card relative rounded-2xl overflow-hidden shadow-md group cursor-pointer h-72 md:h-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+              className="nigeria-card group relative block h-72 w-full cursor-pointer overflow-hidden rounded-xl p-0 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 md:h-80"
             >
               <img
                 src={place.image}
-                alt={place.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                alt=""
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-5 text-white">
+              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/20 to-transparent p-5 text-white">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold">{place.title}</h3>
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-surface group-hover:text-foreground transition">
-                    <ChevronRight size={16} />
-                  </div>
+                  <h3 className="text-lg font-semibold">{place.title}</h3>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 transition-colors group-hover:bg-primary group-hover:text-on-primary">
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </span>
                 </div>
-                <p className="text-xs text-white/80 mt-1 line-clamp-2 leading-relaxed">
+                <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-white/80">
                   {place.description}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
         <div className="text-center">
           <button
             onClick={() => navigate("/destinations")}
-            className="inline-flex items-center justify-center px-8 py-2.5 rounded-full border border-primary text-primary font-bold text-sm hover:bg-primary hover:text-on-primary transition duration-200 cursor-pointer shadow-xs"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary px-6 text-sm font-semibold text-primary transition-colors duration-150 hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
           >
             Explore more of Nigeria
           </button>
@@ -476,7 +477,7 @@ const Landing = () => {
                 return (
                   <div
                     key={deal.id}
-                    className="promo-deal-card bg-secondary rounded-2xl p-6 shadow-xl flex flex-col justify-between h-64 border border-secondary/40 transform hover:-translate-y-1 transition duration-200"
+                    className="promo-deal-card flex h-64 flex-col justify-between rounded-xl border border-white/10 bg-secondary p-6 shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-0.5"
                   >
                     <div>
                       <span className="text-xs font-semibold text-white/90 uppercase tracking-wider block mb-3 border-b border-white/20 pb-2">
@@ -493,7 +494,7 @@ const Landing = () => {
                     </div>
                     <button
                       onClick={() => handleBookDeal(deal.destinationCode)}
-                      className="w-full bg-surface text-on-secondary hover:bg-surface-muted font-bold py-2 rounded-lg text-xs shadow-sm transition cursor-pointer"
+                      className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-secondary cursor-pointer"
                     >
                       {deal.buttonText}
                     </button>
@@ -503,39 +504,36 @@ const Landing = () => {
               return (
                 <div
                   key={deal.id}
-                  className="promo-deal-card bg-primary rounded-2xl p-6 shadow-xl flex flex-col justify-between h-64 border border-primary/30 transform hover:-translate-y-1 transition duration-200"
+                  className="promo-deal-card flex h-64 flex-col justify-between rounded-xl border border-border bg-surface p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   <div>
-                    <span className="text-xs font-semibold text-white/80 uppercase tracking-wider block mb-3 border-b border-white/10 pb-2">
+                    <span className="mb-3 block border-b border-border pb-2 text-xs font-medium text-muted">
                       {deal.badge}
                     </span>
-                    <h3 className="text-lg font-black text-white leading-snug">
+                    <h3 className="text-lg font-semibold leading-snug text-foreground">
                       {deal.title}
                     </h3>
                     {deal.subtitle && (
-                      <p className="text-xs text-white/80 mt-1">
-                        {deal.subtitle}
-                      </p>
+                      <p className="mt-1 text-sm text-muted">{deal.subtitle}</p>
                     )}
                     {deal.couponCode && (
-                      <div className="mt-2 py-1 px-2.5 rounded bg-black/20 text-secondary font-mono font-bold text-sm tracking-wider inline-block">
+                      <div className="mt-2 inline-block rounded-md bg-primary-soft px-2.5 py-1 font-mono text-sm font-semibold tracking-wider text-primary-dark">
                         {deal.couponCode}
                       </div>
                     )}
                     {deal.priceHighlight && (
-                      <p className="text-base font-extrabold text-secondary mt-1">
+                      <p className="mt-1 text-base font-semibold text-primary-dark">
                         {deal.priceHighlight}
                       </p>
                     )}
                     {deal.validity && (
-                      <p className="text-[11px] text-white/60 mt-1 italic">
-                        {deal.validity}
-                      </p>
+                      <p className="mt-1 text-xs text-muted">{deal.validity}</p>
                     )}
                   </div>
                   <button
+                    type="button"
                     onClick={() => handleBookDeal(deal.destinationCode)}
-                    className="w-full bg-white/15 hover:bg-white/25 text-white font-semibold py-2 rounded-lg text-xs border border-white/20 transition cursor-pointer"
+                    className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
                   >
                     {deal.buttonText}
                   </button>
@@ -575,7 +573,7 @@ const Landing = () => {
               {/* Header: Initial, Name, Location */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-primary text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary shadow-sm">
                     {testimonials[testimonialIndex].initial}
                   </div>
                   <div>
@@ -589,7 +587,7 @@ const Landing = () => {
                 </div>
 
                 {/* Stars */}
-                <div className="flex items-center gap-1 text-secondary">
+                <div className="flex items-center gap-1 text-primary">
                   {[...Array(testimonials[testimonialIndex].stars)].map(
                     (_, i) => (
                       <Star key={i} size={15} className="fill-current" />
@@ -624,10 +622,13 @@ const Landing = () => {
 
           <div className="flex items-center gap-2">
             {testimonials.map((_, idx) => (
-              <span
+              <button
                 key={idx}
+                type="button"
                 onClick={() => handleTestimonialChange(idx)}
-                className={`h-2.5 rounded-full cursor-pointer transition-all ${testimonialIndex === idx ? "bg-primary w-6" : "bg-border w-2.5"}`}
+                aria-label={`View testimonial ${idx + 1}`}
+                aria-pressed={testimonialIndex === idx}
+                className={`h-2.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${testimonialIndex === idx ? "w-6 bg-primary" : "w-2.5 bg-border"}`}
               />
             ))}
           </div>

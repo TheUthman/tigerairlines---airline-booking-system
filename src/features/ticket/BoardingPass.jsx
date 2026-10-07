@@ -1,15 +1,40 @@
 import { Plane, Luggage } from "lucide-react";
+
+const getAirportDetails = (airport, fallbackCode, fallbackCity) => {
+  if (airport && typeof airport === "object") {
+    return {
+      code: airport.code || fallbackCode,
+      city: airport.city || airport.name || fallbackCity,
+    };
+  }
+
+  const value = typeof airport === "string" ? airport.trim() : "";
+  const codeMatch = value.match(/\(([^)]+)\)/);
+  const city = value.replace(/\s*\([^)]*\)/, "").trim();
+
+  return {
+    code: codeMatch?.[1] || (/^[A-Z]{3}$/.test(value) ? value : fallbackCode),
+    city: city && !/^[A-Z]{3}$/.test(city) ? city : fallbackCity,
+  };
+};
+
 const BoardingPass = ({ booking }) => {
-  const passenger = booking.passengers[0] || {
-    firstName: "",
-    lastName: "",
+  const passengerNameParts = (booking?.passengerName || "")
+    .trim()
+    .split(/\s+/);
+  const passenger = booking?.passengers?.[0] || booking?.passenger || {
+    firstName: passengerNameParts[0] || "",
+    lastName: passengerNameParts.slice(1).join(" "),
     passportNumber: "",
     ticketNumber: "",
   };
+  const isConfirmed = booking?.status === "CONFIRMED";
+  const origin = getAirportDetails(booking?.origin, "LOS", "Lagos");
+  const destination = getAirportDetails(booking?.destination, "ABV", "Abuja");
   return (
-    <div className="bg-surface rounded-3xl shadow-xl overflow-hidden border border-border text-foreground font-sans print:shadow-none print:border-border">
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface font-sans text-foreground shadow-sm print:border-border print:shadow-none">
       {/* Top Banner */}
-      <div className="bg-primary text-white px-6 py-4 flex items-center justify-between">
+      <div className="flex items-center justify-between bg-primary px-5 py-4 text-on-primary sm:px-6">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-surface text-primary flex items-center justify-center font-black">
             <Plane size={15} className="-rotate-45" />
@@ -19,10 +44,10 @@ const BoardingPass = ({ booking }) => {
           </span>
         </div>
         <div className="text-right">
-          <span className="text-[10px] uppercase font-bold text-white/80 block">
-            Boarding Pass
+          <span className="block text-[10px] font-bold uppercase text-on-primary/75">
+            {isConfirmed ? "Boarding Pass" : "Booking Summary"}
           </span>
-          <span className="font-mono text-sm font-bold text-secondary">
+          <span className="font-mono text-sm font-bold text-on-primary">
             {booking.cabinClass} Class
           </span>
         </div>
@@ -63,15 +88,10 @@ const BoardingPass = ({ booking }) => {
           {/* Route Graphics */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-black text-foreground leading-none">
-                {booking.origin
-                  .split(" ")[1]
-                  ?.replace("(", "")
-                  .replace(")", "") || "LOS"}
+              <p className="text-3xl font-black leading-none text-foreground">
+                {origin.code}
               </p>
-              <p className="text-xs font-bold text-muted mt-1">
-                {booking.origin.split(" ")[0] || "Lagos"}
-              </p>
+              <p className="mt-1 text-xs font-bold text-muted">{origin.city}</p>
             </div>
 
             <div className="flex-1 px-8 text-center">
@@ -85,21 +105,16 @@ const BoardingPass = ({ booking }) => {
                   className="text-primary mx-auto absolute left-1/2 -top-2 -translate-x-1/2"
                 />
               </div>
-              <span className="text-[10px] text-muted uppercase tracking-wider">
-                Confirmed
+              <span className="text-[10px] uppercase tracking-wider text-muted">
+                {isConfirmed ? "Confirmed" : booking?.status === "CANCELLED" ? "Cancelled" : "Awaiting confirmation"}
               </span>
             </div>
 
             <div className="text-right">
-              <p className="text-3xl font-black text-foreground leading-none">
-                {booking.destination
-                  .split(" ")[1]
-                  ?.replace("(", "")
-                  .replace(")", "") || "ABV"}
+              <p className="text-3xl font-black leading-none text-foreground">
+                {destination.code}
               </p>
-              <p className="text-xs font-bold text-muted mt-1">
-                {booking.destination.split(" ")[0] || "Abuja"}
-              </p>
+              <p className="mt-1 text-xs font-bold text-muted">{destination.city}</p>
             </div>
           </div>
 
@@ -117,13 +132,17 @@ const BoardingPass = ({ booking }) => {
               <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
                 Boarding Time
               </p>
-              <p className="text-sm font-black text-primary">07:45 AM</p>
+                <p className="text-sm font-semibold text-primary">
+                  {booking.boardingTime || "To be confirmed"}
+                </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
                 Gate
               </p>
-              <p className="text-base font-black text-foreground">B2</p>
+              <p className="text-base font-semibold text-foreground">
+                {booking.boardingGate || booking.gate || "See airport displays"}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
@@ -154,7 +173,7 @@ const BoardingPass = ({ booking }) => {
         <div className="lg:col-span-4 p-6 bg-background/60 flex flex-col justify-between items-center text-center">
           <div className="w-full">
             <p className="text-xs font-black text-primary uppercase tracking-wider">
-              Boarding Stub
+              {isConfirmed ? "Boarding Stub" : "Reservation Details"}
             </p>
             <p className="text-sm font-bold text-foreground mt-1 uppercase">
               {passenger.firstName} {passenger.lastName}
@@ -168,19 +187,19 @@ const BoardingPass = ({ booking }) => {
                 <span className="text-[9px] text-muted block uppercase">
                   Gate
                 </span>
-                <span>B2</span>
+                <span>{booking.boardingGate || booking.gate || "TBA"}</span>
               </div>
               <div>
                 <span className="text-[9px] text-muted block uppercase">
                   Boarding
                 </span>
-                <span className="text-primary">07:45</span>
+                <span className="text-primary">{booking.boardingTime || "TBA"}</span>
               </div>
               <div>
                 <span className="text-[9px] text-muted block uppercase">
                   Zone
                 </span>
-                <span>1</span>
+                <span>{booking.boardingZone || "—"}</span>
               </div>
             </div>
           </div>
@@ -243,8 +262,8 @@ const BoardingPass = ({ booking }) => {
               <rect x="58" y="78" width="6" height="6" fill="#1e293b" />
               <rect x="78" y="78" width="6" height="6" fill="#1e293b" />
             </svg>
-            <span className="text-[10px] font-mono text-muted mt-1">
-              Scan at Gate B2
+            <span className="mt-1 text-[10px] font-mono text-muted">
+              {isConfirmed ? "Boarding pass code" : "Ticket code available after confirmation"}
             </span>
           </div>
 

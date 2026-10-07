@@ -23,7 +23,9 @@ import {
 
 const AdminTopbar = ({
   onToggleMobileSidebar,
-  title = "Operations Console"
+  mobileMenuButtonRef,
+  mobileSidebarOpen = false,
+  title = "Operations console"
 }) => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
@@ -114,16 +116,19 @@ const AdminTopbar = ({
     matchedFlights.length + matchedPassengers.length + matchedBookings.length;
 
   return (
-    <header className="h-16 bg-surface border-b border-border px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-2 border-b border-border bg-surface px-3 sm:px-4 md:px-6 lg:px-8">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <button
+          ref={mobileMenuButtonRef}
+          type="button"
           onClick={onToggleMobileSidebar}
-          className="lg:hidden p-2 rounded-lg text-muted hover:bg-surface-muted cursor-pointer"
-          aria-label="Open sidebar"
+          className="rounded-lg p-2 text-muted transition hover:bg-surface-muted focus-visible:outline-offset-2 lg:hidden"
+          aria-label={mobileSidebarOpen ? "Close admin navigation" : "Open admin navigation"}
+          aria-expanded={mobileSidebarOpen}
         >
-          <Menu size={20} />
+          <Menu size={19} aria-hidden="true" />
         </button>
-        <h1 className="text-base md:text-lg font-black text-foreground tracking-tight">
+        <h1 className="truncate text-sm font-bold tracking-tight text-foreground sm:text-base md:text-lg">
           {title}
         </h1>
       </div>
@@ -132,8 +137,9 @@ const AdminTopbar = ({
       <div ref={searchContainerRef} className="relative hidden md:block w-72 lg:w-96">
         <div className="relative">
           <input
-            type="text"
-            placeholder="Global search (flights, PNR, passengers)..."
+              type="text"
+              aria-label="Search flights, bookings, and passengers"
+              placeholder="Search flights, PNRs, passengers..."
             value={searchQuery}
             onFocus={() => setIsOpen(true)}
             onChange={(e) => {
@@ -150,9 +156,10 @@ const AdminTopbar = ({
                 setSearchQuery("");
                 setIsOpen(false);
               }}
-              className="absolute right-2.5 top-2.5 text-muted hover:text-muted p-0.5"
+              className="absolute right-2.5 top-2.5 rounded p-0.5 text-muted transition hover:text-foreground focus-visible:outline-offset-2"
+              aria-label="Clear search"
             >
-              <X size={12} />
+              <X size={12} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -248,8 +255,10 @@ const AdminTopbar = ({
                           <span className="font-bold text-foreground">
                             {p.firstName} {p.lastName}
                           </span>
-                          <span className="font-mono text-muted">
-                            {p.passportNumber}
+                          <span className="font-mono text-muted" title="Passport number masked">
+                            {p.passportNumber?.length > 4
+                              ? `${p.passportNumber.slice(0, 2)}••••${p.passportNumber.slice(-2)}`
+                              : "••••"}
                           </span>
                           <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-bold">
                             {p.tier || "Standard"}
@@ -267,21 +276,18 @@ const AdminTopbar = ({
 
       <div className="flex items-center gap-3 md:gap-5">
         <ThemeToggle />
-        {/* Status Indicator */}
-        <div className="hidden sm:flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-semibold">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span>Flight Control: ONLINE</span>
-        </div>
-
         {/* Dynamic Notification Bell with Dropdown (Notification Service) */}
         <div className="relative" ref={notifRef}>
           <button
             type="button"
             onClick={() => setIsNotifOpen(!isNotifOpen)}
-            className="relative p-2 rounded-full text-muted hover:text-foreground hover:bg-surface-muted transition cursor-pointer"
-            title="Flight Ops Alerts & Notifications"
+            className="relative rounded-full p-2 text-muted transition hover:bg-surface-muted hover:text-foreground focus-visible:outline-offset-2"
+            aria-label={`Open notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+            aria-expanded={isNotifOpen}
+            aria-haspopup="dialog"
+            title="Operations notifications"
           >
-            <Bell size={18} />
+            <Bell size={18} aria-hidden="true" />
             {unreadCount > 0 && (
               <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-primary text-white text-[9px] font-black rounded-full flex items-center justify-center px-0.5 ring-2 ring-white">
                 {unreadCount}
@@ -290,12 +296,12 @@ const AdminTopbar = ({
           </button>
 
           {isNotifOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-surface rounded-2xl shadow-2xl border border-border py-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div role="dialog" aria-label="Notifications" className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border border-border bg-surface py-3 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-4 pb-2 border-b border-border flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-bold text-foreground">Notifications</h4>
                   <p className="text-[10px] text-muted">
-                    Live microservice feeds & user alerts
+                    Recent operations updates
                   </p>
                 </div>
                 {unreadCount > 0 && (

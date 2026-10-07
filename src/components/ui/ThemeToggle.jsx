@@ -17,7 +17,7 @@ const ThemeToggle = ({ className = "", variant = "default" }) => {
       onClick={toggleTheme}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       title={isDark ? "Light theme" : "Dark theme"}
-      className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition cursor-pointer ${variants[variant] || variants.default} ${className}`}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${variants[variant] || variants.default} ${className}`}
     >
       {isDark ? <Sun size={15} /> : <Moon size={15} />}
     </button>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import {
   CreditCard,
@@ -35,16 +35,18 @@ const PaymentPage = () => {
 
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [promoCodeInput, setPromoCodeInput] = useState("WELCOME10");
+  const [promoCodeInput, setPromoCodeInput] = useState("");
   const [appliedPromo, setAppliedPromo] = useState("");
   const [pricingQuote, setPricingQuote] = useState(null);
   const [isCalculatingQuote, setIsCalculatingQuote] = useState(false);
 
-  const rawBasePrice = flight
-    ? cabinClass === "Business"
-      ? flight.priceBusiness
-      : flight.priceEconomy
-    : 45000;
+  const rawBasePrice = Number(
+    flight
+      ? cabinClass === "Business"
+        ? flight.priceBusiness ?? 0
+        : flight.priceEconomy ?? 0
+      : 0,
+  );
 
   const baggageCost =
     extras.baggageKg === 30 ? 8000 : extras.baggageKg === 40 ? 15000 : 0;
@@ -59,17 +61,24 @@ const PaymentPage = () => {
   useEffect(() => {
     let isSubscribed = true;
     const calculateDynamicQuote = async () => {
+      if (!flight || !passenger.id) {
+        setPricingQuote(null);
+        setIsCalculatingQuote(false);
+        return;
+      }
+
       setIsCalculatingQuote(true);
       try {
         const quoteRes = await pricingService.getQuote({
-          flightId: flight?.id || 101,
+          flightId: flight.id,
           baseFare: rawBasePrice,
-          departureDate: flight?.departureDate || "2026-10-15",
-          availableSeats: flight?.availableSeats || 30,
-          totalSeats: 180,
+          departureDate: flight.departureDate,
+          availableSeats: flight.availableSeats ?? 0,
+          totalSeats: flight.totalSeats ?? flight.availableSeats ?? 0,
           cabin: (cabinClass || "ECONOMY").toUpperCase(),
           promoCode: appliedPromo,
-          frequentFlyerPoints: 500,
+          frequentFlyerPoints:
+            passenger.frequentFlyerPoints ?? passenger.loyaltyPoints ?? 0,
         });
 
         if (isSubscribed && quoteRes?.data) {
@@ -86,7 +95,15 @@ const PaymentPage = () => {
     return () => {
       isSubscribed = false;
     };
-  }, [flight, rawBasePrice, cabinClass, appliedPromo]);
+  }, [
+    flight,
+    rawBasePrice,
+    cabinClass,
+    appliedPromo,
+    passenger.id,
+    passenger.frequentFlyerPoints,
+    passenger.loyaltyPoints,
+  ]);
 
   const effectiveBaseFare =
     pricingQuote?.total !== undefined ? pricingQuote.total : rawBasePrice;
@@ -105,16 +122,27 @@ const PaymentPage = () => {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      cardNumber: "4242 •••• •••• 4242",
-      cardHolder: `${passenger.firstName} ${passenger.lastName}`.toUpperCase(),
-      expiryDate: "12/28",
-      cvv: "883",
+      cardNumber: "",
+      cardHolder: `${passenger.firstName || ""} ${passenger.lastName || ""}`.trim().toUpperCase(),
+      expiryDate: "",
+      cvv: "",
     },
   });
 
   const onSubmit = async (data) => {
     setIsProcessing(true);
     try {
+      if (!flight?.id || !passenger?.id) {
+        throw new Error("Your flight or passenger details are missing. Return to booking and try again.");
+      }
+      if (
+        !Number.isFinite(grandTotal) ||
+        grandTotal <= 0 ||
+        !Number.isFinite(rawBasePrice) ||
+        rawBasePrice <= 0
+      ) {
+        throw new Error("A valid fare is not available for this flight yet.");
+      }
       if (data.cvv === "000") {
         throw new Error(
           "Card declined by issuing bank (insufficient funds or simulated test decline)",
@@ -122,23 +150,18 @@ const PaymentPage = () => {
       }
 
       // Step 1: Create booking and lock seat for 10 min (Booking Service)
-      const parsedPassengerId = Number(passenger.id);
-      const safePassengerId = (!isNaN(parsedPassengerId) && parsedPassengerId > 0) ? parsedPassengerId : 1;
-      const parsedFlightId = Number(flight?.id);
-      const safeFlightId = (!isNaN(parsedFlightId) && parsedFlightId > 0) ? parsedFlightId : 101;
-
       const bookingPayload = {
-        flightId: safeFlightId,
-        flightNumber: flight?.flightNumber || "TG-101",
-        passengerId: safePassengerId,
-        passengerName: `${passenger.firstName} ${passenger.lastName}`,
-        origin: `${flight?.origin?.city || "Lagos"} (${flight?.origin?.code || "LOS"})`,
-        destination: `${flight?.destination?.city || "Abuja"} (${flight?.destination?.code || "ABV"})`,
-        departureDate: flight?.departureDate || "2026-10-15",
-        departureTime: flight?.departureTime || "06:00",
+        flightId: flight.id,
+        flightNumber: flight.flightNumber,
+        passengerId: passenger.id,
+        passengerName: `${passenger.firstName} ${passenger.lastName}`.trim(),
+        origin: `${flight.origin?.city || flight.origin?.code || ""}${flight.origin?.code ? ` (${flight.origin.code})` : ""}`,
+        destination: `${flight.destination?.city || flight.destination?.code || ""}${flight.destination?.code ? ` (${flight.destination.code})` : ""}`,
+        departureDate: flight.departureDate,
+        departureTime: flight.departureTime,
         cabinClass: cabinClass || "Economy",
         status: "PENDING_PAYMENT",
-        seatNumber: selectedSeats[0] || "12A",
+        seatNumber: selectedSeats[0] || null,
         amount: grandTotal,
       };
 
@@ -185,19 +208,42 @@ const PaymentPage = () => {
     }
   };
 
+  if (!flight || passengers.length === 0 || !passenger.id) {
+    return (
+      <main className="page-container flex min-h-[55vh] items-center justify-center py-12">
+        <section className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 text-center shadow-sm sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Checkout paused</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">Your booking details are missing</h1>
+          <p className="mt-3 text-sm leading-relaxed text-muted">Return to your booking to select a flight and add passenger details before submitting payment.</p>
+          <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+            <Link to="/search" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-on-primary transition hover:bg-primary-hover focus-visible:outline-offset-2">Search flights</Link>
+            <Link to="/book" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-surface-muted focus-visible:outline-offset-2">Resume booking</Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
-    <div className="bg-background py-10 px-4 md:px-8">
-      {isProcessing && <LoadingOverlay label="Processing your payment..." />}
-      <div className="max-w-6xl mx-auto">
+    <main className="bg-background px-4 py-8 md:px-8 md:py-10">
+      {isProcessing && <LoadingOverlay label="Submitting your payment request..." />}
+      <div className="mx-auto max-w-6xl">
         <BookingProgress activeStep={6} />
         <button
+          type="button"
           onClick={() => navigate("/book")}
-          className="inline-flex items-center gap-2 text-xs font-bold text-primary hover:underline mb-6 cursor-pointer"
+          className="mb-5 inline-flex min-h-10 items-center gap-2 rounded-lg text-xs font-bold text-primary transition hover:underline focus-visible:outline-offset-2"
         >
-          <ArrowLeft size={14} /> Back to Booking Wizard
+          <ArrowLeft size={14} aria-hidden="true" /> Back to Booking Wizard
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Checkout</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Complete your booking</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">Submit your payment request to reserve this itinerary. Ticket confirmation follows the payment provider&apos;s response.</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           {/* Left Column: Payment Methods & Card Form */}
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-sm border border-border">
@@ -207,10 +253,10 @@ const PaymentPage = () => {
                     Payment Details
                   </h2>
                   <p className="text-xs text-muted mt-0.5">
-                    Safe & encrypted transaction under 256-bit TLS
+                    Choose a payment method and submit your request securely.
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200">
+                <div className="flex items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
                   <ShieldCheck size={14} />
                   <span>Secure SSL</span>
                 </div>
@@ -313,7 +359,7 @@ const PaymentPage = () => {
                     isLoading={isProcessing}
                     className="w-full font-bold shadow-md hover:shadow-orange-500/25"
                   >
-                    Pay ₦{grandTotal.toLocaleString("en-NG")} & Confirm Booking
+                    Submit payment request · ₦{grandTotal.toLocaleString("en-NG")}
                   </Button>
                 </div>
               </form>
@@ -335,31 +381,31 @@ const PaymentPage = () => {
               {/* Flight snippet */}
               <div className="bg-background p-4 rounded-xl border border-border">
                 <div className="flex items-center justify-between text-xs font-bold text-foreground mb-2">
-                  <span>{flight?.flightNumber || "TG-101"}</span>
+                  <span>{flight.flightNumber || "Flight"}</span>
                   <span className="text-primary">{cabinClass}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-base font-black text-foreground">
-                      {flight?.origin?.code || "LOS"}
+                      {flight.origin?.code || "—"}
                     </span>
                     <p className="text-[11px] text-muted">
-                      {flight?.origin?.city || "Lagos"}
+                      {flight.origin?.city || "Origin"}
                     </p>
                   </div>
                   <Plane size={16} className="text-secondary" />
                   <div className="text-right">
                     <span className="text-base font-black text-foreground">
-                      {flight?.destination?.code || "ABV"}
+                      {flight.destination?.code || "—"}
                     </span>
                     <p className="text-[11px] text-muted">
-                      {flight?.destination?.city || "Abuja"}
+                      {flight.destination?.city || "Destination"}
                     </p>
                   </div>
                 </div>
                 <p className="text-[11px] text-muted mt-2 font-mono">
-                  Depart: {flight?.departureDate || "2026-10-15"} at{" "}
-                  {flight?.departureTime || "08:30"}
+                  Depart: {flight.departureDate || "Date unavailable"} at{" "}
+                  {flight.departureTime || "Time unavailable"}
                 </p>
               </div>
 
@@ -476,18 +522,18 @@ const PaymentPage = () => {
               <div className="pt-2 border-t border-border text-[11px] text-muted space-y-1.5">
                 <p className="flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-600" />
-                  <span>24-Hour Free Cancellation Policy</span>
+                  <span>Fare rules apply to changes and cancellations</span>
                 </p>
                 <p className="flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-600" />
-                  <span>Instant E-Ticket & Boarding Pass Issuance</span>
+                  <span>Boarding pass appears after payment confirmation</span>
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

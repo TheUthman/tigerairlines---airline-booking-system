@@ -7,6 +7,14 @@ import Input from "../components/ui/Input";
 import { useToast } from "../components/ui/Toast";
 import { exportToCsv } from "../utils/exportCsv";
 import EmptyState from "../components/ui/EmptyState";
+const maskPassportNumber = (passportNumber) => {
+  if (!passportNumber) return "Not provided";
+  const value = String(passportNumber);
+  return value.length > 4
+    ? `${value.slice(0, 2)}••••${value.slice(-2)}`
+    : "••••";
+};
+
 const AdminPassengersPage = () => {
   const toast = useToast();
   const [passengers, setPassengers] = useState([]);
@@ -65,7 +73,7 @@ const AdminPassengersPage = () => {
       nationality: p.nationality,
       tier: p.tier || "Standard",
       frequentFlyerNumber: p.frequentFlyerNumber || "None",
-      totalBookings: p.totalBookings || 1
+      totalBookings: p.totalBookings ?? ""
     }));
     exportToCsv("TigerAirlines_Passengers", exportData, [
       { key: "name", label: "Passenger Name" },
@@ -96,7 +104,7 @@ const AdminPassengersPage = () => {
     else updated.add(id);
     setSelectedIds(updated);
   };
-  return <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto relative">
+  return <div className="admin-data-page p-4 md:p-8 space-y-6 max-w-7xl mx-auto relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-foreground tracking-tight">
@@ -118,7 +126,8 @@ const AdminPassengersPage = () => {
 
           <div className="relative w-full sm:w-72">
             <input
-    type="text"
+    type="search"
+    aria-label="Search passengers by name, passport, or email"
     placeholder="Search traveler by name, passport, email..."
     value={search}
     onChange={(e) => setSearch(e.target.value)}
@@ -205,8 +214,7 @@ const AdminPassengersPage = () => {
                   </td>
                 </tr> : filtered.map((p) => <tr
     key={p.id}
-    onClick={() => openDrawer(p)}
-    className="hover:bg-surface-muted/80 transition cursor-pointer"
+    className="hover:bg-surface-muted/80 transition"
   >
                     <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
                       <input
@@ -232,7 +240,9 @@ const AdminPassengersPage = () => {
                       </div>
                     </td>
                     <td className="py-3.5 px-4 font-mono font-semibold text-foreground">
-                      {p.passportNumber}
+                      <span title="Full document number is available in passenger details">
+                        {maskPassportNumber(p.passportNumber)}
+                      </span>
                     </td>
                     <td className="py-3.5 px-4">
                       <p className="text-foreground">{p.email}</p>
@@ -248,15 +258,14 @@ const AdminPassengersPage = () => {
                       </Badge>
                     </td>
                     <td className="py-3.5 px-4 font-mono font-bold text-foreground">
-                      {p.totalBookings || 1}
+                      {p.totalBookings ?? "—"}
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <button
-    onClick={(e) => {
-      e.stopPropagation();
-      openDrawer(p);
-    }}
-    className="text-xs font-bold text-primary hover:underline cursor-pointer"
+    type="button"
+    onClick={() => openDrawer(p)}
+    aria-label={`View details for ${p.firstName} ${p.lastName}`}
+    className="text-xs font-bold text-primary hover:underline cursor-pointer focus-visible:outline-offset-2"
   >
                         View Details →
                       </button>
@@ -270,8 +279,8 @@ const AdminPassengersPage = () => {
       {
     /* Slide-out Drawer */
   }
-      {selectedPassenger && <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-md bg-surface h-full shadow-2xl p-6 overflow-y-auto flex flex-col justify-between animate-in slide-in-from-right duration-300">
+      {selectedPassenger && <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDrawer(); }} className="fixed inset-0 z-50 flex justify-end overflow-hidden bg-black/40 backdrop-blur-xs">
+          <div role="dialog" aria-modal="true" aria-labelledby="passenger-drawer-title" onMouseDown={(event) => event.stopPropagation()} className="flex h-full w-full max-w-md flex-col justify-between overflow-y-auto border-l border-border bg-surface p-5 shadow-2xl animate-in slide-in-from-right duration-200 sm:p-6">
             <div>
               {
     /* Header */
@@ -282,7 +291,7 @@ const AdminPassengersPage = () => {
                     {selectedPassenger.firstName.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-foreground">
+                    <h3 id="passenger-drawer-title" className="text-base font-bold text-foreground">
                       {selectedPassenger.firstName} {selectedPassenger.lastName}
                     </h3>
                     <p className="text-xs text-muted font-mono">
@@ -291,10 +300,12 @@ const AdminPassengersPage = () => {
                   </div>
                 </div>
                 <button
+    type="button"
     onClick={closeDrawer}
-    className="p-1 rounded-md text-muted hover:text-muted hover:bg-surface-muted"
+    className="rounded-lg p-2 text-muted transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-offset-2"
+    aria-label="Close passenger details"
   >
-                  <X size={18} />
+                  <X size={18} aria-hidden="true" />
                 </button>
               </div>
 
@@ -308,7 +319,7 @@ const AdminPassengersPage = () => {
                   <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                        Druk Miles Tier
+                        TigerMiles tier
                       </p>
                       <p className="text-base font-black text-foreground mt-0.5">
                         {selectedPassenger.tier || "Standard"} Member
@@ -376,7 +387,7 @@ const AdminPassengersPage = () => {
                       <div>
                         <p className="text-muted">Total Bookings Completed</p>
                         <p className="text-xl font-mono font-black text-foreground mt-1">
-                          {selectedPassenger.totalBookings || 1} Flights
+                          {selectedPassenger.totalBookings ?? "—"} Flights
                         </p>
                       </div>
                       <Plane size={24} className="text-muted" />

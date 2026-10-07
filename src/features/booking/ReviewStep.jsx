@@ -4,6 +4,7 @@ import Button from "../../components/ui/Button";
 import { useAppDispatch, useAppSelector } from "../../app/store";
 import { setBookingStep } from "./bookingSlice";
 import { formatNaira } from "../../utils/formatNaira";
+import { getBookingPriceBreakdown } from "./bookingPricing";
 const ReviewStep = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -14,21 +15,12 @@ const ReviewStep = () => {
   const cabinClass = useAppSelector(
     (state) => state.booking.searchParams.cabinClass,
   );
-  const basePrice = flight
-    ? cabinClass === "Business"
-      ? flight.priceBusiness
-      : flight.priceEconomy
-    : 45e3;
-  const baggageCost =
-    extras.baggageKg === 30 ? 1e4 : extras.baggageKg === 40 ? 18e3 : 0;
-  const mealCost = extras.mealPreference === "Chef's Special" ? 4500 : 0;
-  const insuranceCost = extras.travelInsurance ? 5e3 : 0;
-  const priorityCost = extras.priorityBoarding ? 2500 : 0;
-  const loungeCost = extras.loungeAccess ? 8e3 : 0;
-  const extrasTotal =
-    baggageCost + mealCost + insuranceCost + priorityCost + loungeCost;
-  const taxesAndFees = Math.round(basePrice * 0.075);
-  const grandTotal = basePrice + extrasTotal + taxesAndFees;
+  const {
+    baseFare: basePrice,
+    extrasTotal,
+    taxesAndFees,
+    grandTotal,
+  } = getBookingPriceBreakdown({ flight, cabinClass, extras });
   const passenger = passengers[0] || {
     firstName: "",
     lastName: "",
@@ -199,7 +191,7 @@ const ReviewStep = () => {
           onClick={handleProceedToPayment}
           className="px-8 font-bold flex items-center gap-2 shadow-md hover:shadow-orange-500/25"
         >
-          <span>Proceed to Payment (${grandTotal}.00)</span>
+          <span>Proceed to Payment ({formatNaira(grandTotal)})</span>
           <ArrowRight size={16} />
         </Button>
       </div>

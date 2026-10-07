@@ -13,6 +13,8 @@ import { loginSuccess } from "../features/auth/authSlice";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import ThemeToggle from "../components/ui/ThemeToggle";
+import AuthShell from "../components/layout/AuthShell";
+
 const AdminLoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,8 +25,9 @@ const AdminLoginPage = () => {
   const [error, setError] = useState(location.state?.error || null);
   const [isLoading, setIsLoading] = useState(false);
   const from = location.state?.from?.pathname || "/admin";
-  const handleSubmit = (e) => {
-    e.preventDefault();
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
     setIsLoading(true);
     setError(null);
     setTimeout(() => {
@@ -35,6 +38,7 @@ const AdminLoginPage = () => {
         setIsLoading(false);
         return;
       }
+
       dispatch(
         loginSuccess({
           user: {
@@ -55,105 +59,113 @@ const AdminLoginPage = () => {
       navigate(from, { replace: true });
     }, 400);
   };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute top-4 right-4 z-20">
-        <ThemeToggle />
-      </div>
-      {/* Background Graphic */}
-      <div
-        className="absolute inset-0 opacity-15 bg-cover bg-center pointer-events-none"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600&auto=format&fit=crop&q=80')`,
-        }}
-      />
-
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-primary mb-6 transition"
-        >
-          <ArrowLeft size={14} /> Back to Customer Portal
-        </Link>
-
-        <div className="flex justify-center mb-3">
-          <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg border border-white/20">
-            <Plane size={24} className="-rotate-45" />
-          </div>
-        </div>
-
-        <h2 className="text-center text-2xl font-black text-foreground tracking-tight">
-          TigerAirlines Operations
-        </h2>
-        <p className="mt-1 text-center text-xs text-muted">
-          Airline Operations Management & Flight Dispatch Control
-        </p>
-      </div>
-
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4 sm:px-0">
-        <div className="bg-surface py-8 px-6 shadow-2xl rounded-3xl sm:px-10 border border-border">
-          {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-700/50 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
-              <AlertCircle size={16} className="shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1">
-                Authorized Staff Role
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRole("ADMINISTRATOR")}
-                  className={`py-2 px-3 text-xs font-bold rounded-lg border cursor-pointer transition ${role === "ADMINISTRATOR" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted hover:bg-surface-muted"}`}
-                >
-                  Administrator
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("STAFF")}
-                  className={`py-2 px-3 text-xs font-bold rounded-lg border cursor-pointer transition ${role === "STAFF" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted hover:bg-surface-muted"}`}
-                >
-                  Flight Staff
-                </button>
-              </div>
-            </div>
-
-            <Input
-              label="Staff Email *"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              icon={<Mail size={16} />}
-              required
-            />
-
-            <Input
-              label="Security Access Key *"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              icon={<Lock size={16} />}
-              required
-            />
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              isLoading={isLoading}
-              className="w-full font-bold shadow-md"
+    <div className="auth-page">
+      <AuthShell variant="operations">
+        <div className="w-full max-w-md space-y-6">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-muted transition hover:text-primary"
             >
-              Sign In to Ops Console
-            </Button>
-          </form>
+              <ArrowLeft size={14} aria-hidden="true" />
+              Customer portal
+            </Link>
+            <ThemeToggle />
+          </div>
+
+          <header className="space-y-2">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Plane size={23} className="-rotate-45" aria-hidden="true" />
+            </div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+              Authorized staff
+            </p>
+            <h1 className="text-3xl font-black tracking-tight text-foreground">
+              Operations console
+            </h1>
+            <p className="text-sm leading-6 text-muted">
+              Sign in to manage flights, fleet operations, and passenger bookings.
+            </p>
+          </header>
+
+          <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-7">
+            {error && (
+              <div
+                role="alert"
+                className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-700/50 dark:bg-red-950/40 dark:text-red-300"
+              >
+                <AlertCircle size={16} className="shrink-0" aria-hidden="true" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <fieldset>
+                <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-foreground">
+                  Staff role
+                </legend>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRole("ADMINISTRATOR")}
+                    aria-pressed={role === "ADMINISTRATOR"}
+                    className={`rounded-xl border px-3 py-3 text-xs font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${role === "ADMINISTRATOR" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted hover:bg-surface-muted"}`}
+                  >
+                    Administrator
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole("STAFF")}
+                    aria-pressed={role === "STAFF"}
+                    className={`rounded-xl border px-3 py-3 text-xs font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${role === "STAFF" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted hover:bg-surface-muted"}`}
+                  >
+                    Flight staff
+                  </button>
+                </div>
+              </fieldset>
+
+              <Input
+                label="Staff email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                icon={<Mail size={16} />}
+                autoComplete="username"
+                required
+              />
+
+              <Input
+                label="Security access key"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                icon={<Lock size={16} />}
+                autoComplete="current-password"
+                required
+              />
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                isLoading={isLoading}
+                className="w-full font-bold shadow-sm"
+              >
+                Sign in to operations
+              </Button>
+            </form>
+
+            <p className="mt-5 border-t border-border pt-4 text-center text-[11px] text-muted">
+              Restricted to authorized Tiger Airlines personnel.
+            </p>
+          </section>
         </div>
-      </div>
+      </AuthShell>
     </div>
   );
 };
-var stdin_default = AdminLoginPage;
-export { AdminLoginPage, stdin_default as default };
+
+export default AdminLoginPage;
+export { AdminLoginPage };

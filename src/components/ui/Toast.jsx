@@ -38,18 +38,18 @@ const ToastProvider = ({ children }) => {
     const isWarning = toast.type === "warning";
     return <div
       key={toast.id}
-      role="alert"
-      className={`pointer-events-auto rounded-2xl p-4 shadow-xl border backdrop-blur-md transition-all duration-300 transform translate-y-0 opacity-100 flex items-start gap-3 ${isSuccess ? "bg-emerald-950/95 border-emerald-700/60 text-emerald-100 shadow-emerald-950/20" : isError ? "bg-red-950/95 border-red-700/60 text-red-100 shadow-red-950/20" : isWarning ? "bg-amber-950/95 border-amber-700/60 text-amber-100 shadow-amber-950/20" : "bg-[#111111]/95 border-white/10 text-white shadow-black/20"}`}
+      role={isError ? "alert" : "status"}
+      className={`pointer-events-auto flex translate-y-0 items-start gap-3 rounded-xl border bg-surface p-4 text-foreground opacity-100 shadow-lg shadow-black/10 backdrop-blur-md transition-all duration-300 ${isSuccess ? "border-success/25" : isError ? "border-danger/25" : isWarning ? "border-warning/25" : "border-border"}`}
     >
               <div className="shrink-0 mt-0.5">
-                {isSuccess && <CheckCircle2 size={18} className="text-emerald-400" />}
-                {isError && <AlertCircle size={18} className="text-red-400" />}
-                {isWarning && <AlertTriangle size={18} className="text-amber-400" />}
-                {!isSuccess && !isError && !isWarning && <Info size={18} className="text-secondary" />}
+                {isSuccess && <CheckCircle2 size={18} className="text-success" />}
+                {isError && <AlertCircle size={18} className="text-danger" />}
+                {isWarning && <AlertTriangle size={18} className="text-warning" />}
+                {!isSuccess && !isError && !isWarning && <Info size={18} className="text-primary" />}
               </div>
 
               <div className="flex-1 text-xs">
-                {toast.title && <p className="font-bold text-white mb-0.5">{toast.title}</p>}
+                {toast.title && <p className="mb-0.5 font-semibold text-foreground">{toast.title}</p>}
                 <p className="leading-relaxed opacity-90">{toast.message}</p>
               </div>
 
