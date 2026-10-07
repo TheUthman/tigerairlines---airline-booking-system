@@ -6,6 +6,7 @@ import { Mail, AlertCircle, ArrowLeft, RefreshCw, Plane } from "lucide-react";
 import authService from "../services/authService";
 import { getApiErrorMessage } from "../services/apiClient";
 import Button from "../components/ui/Button";
+import AuthShell from "../components/layout/AuthShell";
 import { useToast } from "../components/ui/Toast";
 
 const VerifyEmailPage = () => {
@@ -105,11 +106,9 @@ const VerifyEmailPage = () => {
     }
   };
   return (
-    <div
-      ref={containerRef}
-      className="bg-background flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8"
-    >
-      <div className="max-w-md w-full space-y-8 verify-card bg-surface p-8 md:p-10 rounded-3xl shadow-xl border border-border">
+    <div ref={containerRef} className="auth-page">
+      <AuthShell>
+        <div className="max-w-md w-full space-y-8 verify-card bg-surface p-6 sm:p-8 md:p-10 rounded-2xl shadow-sm border border-border">
         {/* Header */}
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2 group">
@@ -217,7 +216,8 @@ const VerifyEmailPage = () => {
             </Link>
           </div>
         </div>
-      </div>
+        </div>
+      </AuthShell>
     </div>
   );
 };

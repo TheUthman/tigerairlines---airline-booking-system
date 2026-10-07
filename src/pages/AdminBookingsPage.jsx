@@ -9,6 +9,7 @@ import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { useToast } from "../components/ui/Toast";
 import { exportToCsv } from "../utils/exportCsv";
 import EmptyState from "../components/ui/EmptyState";
+import { formatNaira } from "../utils/formatNaira";
 const AdminBookingsPage = () => {
   const toast = useToast();
   const [bookings, setBookings] = useState([]);
@@ -34,7 +35,7 @@ const AdminBookingsPage = () => {
     setIsCancelling(true);
     try {
       await bookingService.cancelBooking(cancelTarget.id);
-      toast.warning(`Booking ${cancelTarget.pnr} has been cancelled and refunded.`);
+      toast.warning(`Booking ${cancelTarget.pnr} was cancelled.`);
       setCancelTarget(null);
       await loadData();
     } finally {
@@ -47,16 +48,13 @@ const AdminBookingsPage = () => {
       for (const id of selectedIds) {
         await bookingService.cancelBooking(id);
       }
-      toast.warning(`Cancelled and refunded ${selectedIds.size} reservations.`);
+      toast.warning(`Cancellation requests submitted for ${selectedIds.size} reservations.`);
       setSelectedIds(/* @__PURE__ */ new Set());
       setShowBulkCancelModal(false);
       await loadData();
     } finally {
       setIsCancelling(false);
     }
-  };
-  const handleBulkStatusUpdate = async (status) => {
-    toast.error("Bulk status changes are unavailable: booking status is owned by the payment event flow.");
   };
   const handleExportCsv = () => {
     const exportData = filtered.map((b) => ({
@@ -79,14 +77,16 @@ const AdminBookingsPage = () => {
       { key: "destination", label: "Destination" },
       { key: "departureDate", label: "Date" },
       { key: "seatNumber", label: "Seat" },
-      { key: "totalAmount", label: "Amount ($)" },
+      { key: "totalAmount", label: "Amount (NGN)" },
       { key: "paymentStatus", label: "Payment" },
       { key: "status", label: "Status" }
     ]);
     toast.success("Bookings manifest exported to CSV");
   };
   const filtered = bookings.filter((b) => {
-    const matchesSearch = b.pnr.toLowerCase().includes(search.toLowerCase()) || b.passengerName.toLowerCase().includes(search.toLowerCase()) || b.flightNumber.toLowerCase().includes(search.toLowerCase());
+    const searchTerm = search.toLowerCase();
+    const matchesSearch = [b.pnr, b.passengerName, b.flightNumber]
+      .some((value) => String(value || "").toLowerCase().includes(searchTerm));
     const matchesStatus = statusFilter === "ALL" || b.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -104,14 +104,14 @@ const AdminBookingsPage = () => {
     else updated.add(id);
     setSelectedIds(updated);
   };
-  return <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
+  return <div className="admin-data-page p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-foreground tracking-tight">
             Reservations & Ticketing
           </h2>
           <p className="text-xs text-muted mt-0.5">
-            Monitor confirmed passenger PNRs, issue tickets, and verify payments.
+            Review reservation records and their current payment status.
           </p>
         </div>
 
@@ -127,6 +127,7 @@ const AdminBookingsPage = () => {
           <div className="relative w-full sm:w-72">
             <input
     type="text"
+    aria-label="Search bookings by PNR, passenger, or flight"
     placeholder="Search by PNR, passenger, or flight..."
     value={search}
     onChange={(e) => setSearch(e.target.value)}
@@ -146,24 +147,22 @@ const AdminBookingsPage = () => {
           <select
     value={statusFilter}
     onChange={(e) => setStatusFilter(e.target.value)}
+    aria-label="Filter bookings by status"
     className="bg-background border border-border rounded-lg px-2.5 py-1 font-medium text-foreground focus:outline-none"
   >
             <option value="ALL">All Reservations</option>
             <option value="CONFIRMED">CONFIRMED</option>
-            <option value="PENDING">PENDING</option>
+                    <option value="PENDING_PAYMENT">PAYMENT PENDING</option>
+                    <option value="PENDING">PENDING</option>
             <option value="CANCELLED">CANCELLED</option>
           </select>
         </div>
 
         {selectedIds.size > 0 && <div className="flex items-center gap-2">
             <span className="font-bold text-primary">{selectedIds.size} selected:</span>
-            <button
-    type="button"
-    onClick={() => handleBulkStatusUpdate("CONFIRMED")}
-    className="px-2.5 py-1 bg-surface border border-border rounded-lg font-bold hover:bg-surface-muted cursor-pointer"
-  >
-              Set Confirmed
-            </button>
+            <span className="hidden rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted sm:inline">
+              Status follows payment events
+            </span>
             <Button
     variant="danger"
     size="sm"
@@ -176,7 +175,7 @@ const AdminBookingsPage = () => {
       </div>
 
       <div className="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" role="region" aria-label="Bookings table" tabIndex={0}>
           <table className="w-full text-left text-xs">
             <thead className="bg-background text-muted uppercase tracking-wider font-semibold border-b border-border">
               <tr>
@@ -185,6 +184,7 @@ const AdminBookingsPage = () => {
     type="checkbox"
     checked={selectedIds.size > 0 && selectedIds.size === filtered.length}
     onChange={toggleSelectAll}
+    aria-label="Select all visible bookings"
     className="w-4 h-4 rounded text-primary focus:ring-primary"
   />
                 </th>
@@ -222,6 +222,7 @@ const AdminBookingsPage = () => {
     type="checkbox"
     checked={selectedIds.has(b.id)}
     onChange={(e) => toggleSelectRow(b.id, e)}
+    aria-label={`Select booking ${b.pnr}`}
     className="w-4 h-4 rounded text-primary focus:ring-primary"
   />
                     </td>
@@ -236,10 +237,10 @@ const AdminBookingsPage = () => {
                       {b.origin} → {b.destination}
                     </td>
                     <td className="py-3.5 px-4 font-mono font-bold text-foreground">
-                      {b.seatNumber || "12A"}
+                      {b.seatNumber || "—"}
                     </td>
                     <td className="py-3.5 px-4 font-mono font-black text-foreground">
-                      ${b.totalAmount}
+                      {formatNaira(b.totalAmount ?? b.amount ?? 0)}
                     </td>
                     <td className="py-3.5 px-4">
                       <span
@@ -261,7 +262,8 @@ const AdminBookingsPage = () => {
     type="button"
     onClick={() => setViewingBooking(b)}
     className="p-1.5 text-muted hover:text-foreground hover:bg-surface-muted rounded-lg transition cursor-pointer"
-    title="View Boarding Pass"
+    aria-label={`View booking ${b.pnr}`}
+    title="View booking details"
   >
                           <Eye size={14} />
                         </button>
@@ -269,7 +271,8 @@ const AdminBookingsPage = () => {
     type="button"
     onClick={() => setCancelTarget(b)}
     className="p-1.5 text-muted hover:text-red-600 hover:bg-primary/10 rounded-lg transition cursor-pointer"
-    title="Cancel Booking"
+    aria-label={`Cancel booking ${b.pnr}`}
+    title="Cancel booking"
   >
                             <XCircle size={14} />
                           </button>}
@@ -288,7 +291,7 @@ const AdminBookingsPage = () => {
     isOpen={!!viewingBooking}
     onClose={() => setViewingBooking(null)}
     title={`E-Ticket Document (${viewingBooking?.pnr})`}
-    description="Official IATA passenger e-ticket and digital boarding document."
+    description="Review the reservation details and current ticket status."
     maxWidth="xl"
   >
         {viewingBooking && <BoardingPass booking={viewingBooking} />}
@@ -302,7 +305,7 @@ const AdminBookingsPage = () => {
     onClose={() => setCancelTarget(null)}
     onConfirm={handleConfirmCancelSingle}
     title={`Cancel Reservation ${cancelTarget?.pnr}?`}
-    description={`Are you sure you want to cancel the booking for ${cancelTarget?.passengerName}? A refund calculation will be issued and the seat released.`}
+    description={`Submit a cancellation request for ${cancelTarget?.passengerName || "this passenger"}. The booking service will return the current reservation status.`}
     confirmText="Confirm Cancellation"
     variant="danger"
     isLoading={isCancelling}
@@ -316,7 +319,7 @@ const AdminBookingsPage = () => {
     onClose={() => setShowBulkCancelModal(false)}
     onConfirm={handleConfirmBulkCancel}
     title={`Cancel ${selectedIds.size} Selected Reservations?`}
-    description={`This will cancel ${selectedIds.size} confirmed passenger reservations and trigger electronic refunds. Are you sure you want to proceed?`}
+    description={`Submit cancellation requests for ${selectedIds.size} selected reservations. Confirm that these are the intended records before proceeding.`}
     confirmText={`Cancel & Refund ${selectedIds.size} Bookings`}
     variant="danger"
     isLoading={isCancelling}

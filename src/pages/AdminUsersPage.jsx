@@ -120,7 +120,7 @@ const AdminUsersPage = () => {
   });
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
+    <div className="admin-data-page mx-auto max-w-7xl p-4 md:p-8 space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

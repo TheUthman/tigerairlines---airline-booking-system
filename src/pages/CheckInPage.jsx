@@ -16,6 +16,13 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import { useToast } from "../components/ui/Toast";
 import EmptyState from "../components/ui/EmptyState";
+const formatRemainingTime = (milliseconds) => {
+  const totalMinutes = Math.max(0, Math.ceil(milliseconds / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}m`;
+};
+
 const CheckInPage = () => {
   const toast = useToast();
   const [pnrInput, setPnrInput] = useState("");
@@ -26,7 +33,6 @@ const CheckInPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [declaredSafety, setDeclaredSafety] = useState(false);
   const [selectedSeat, setSelectedSeat] = useState("");
-  const [forceWindowOpen, setForceWindowOpen] = useState(false);
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     if (!pnrInput.trim()) return;
@@ -40,7 +46,7 @@ const CheckInPage = () => {
       );
       setBooking(res.data || null);
       if (res.data) {
-        setSelectedSeat(res.data.seatNumber || "12A");
+        setSelectedSeat(res.data.seatNumber || "");
       }
     } catch (err) {
       setBooking(null);
@@ -48,13 +54,31 @@ const CheckInPage = () => {
       setLoading(false);
     }
   };
-  const isWithin24Hours =
-    forceWindowOpen || booking?.pnr === "TG88JK_DEMO_OPEN";
+  const departureTimestamp = booking?.departureDate && booking?.departureTime
+    ? new Date(`${booking.departureDate}T${booking.departureTime}`).getTime()
+    : Number.NaN;
+  const checkInOpensAt = departureTimestamp - 24 * 60 * 60 * 1000;
+  const checkInClosesAt = departureTimestamp - 90 * 60 * 1000;
+  const isDemoWindow = booking?.pnr === "TG88JK_DEMO_OPEN";
+  const checkInWindowState = isDemoWindow
+    ? "open"
+    : !Number.isFinite(departureTimestamp)
+      ? "unavailable"
+      : Date.now() < checkInOpensAt
+        ? "upcoming"
+        : Date.now() > checkInClosesAt
+          ? "closed"
+          : "open";
+  const isWithin24Hours = checkInWindowState === "open";
   const handleProceedToSeat = () => {
     if (!declaredSafety) {
       toast.warning(
         "Please confirm the aviation safety and hazardous goods declaration before proceeding.",
       );
+      return;
+    }
+    if (!booking?.seatNumber) {
+      toast.warning("A seat must be assigned before check-in can continue.");
       return;
     }
     setCurrentStep(2);
@@ -65,7 +89,7 @@ const CheckInPage = () => {
     try {
       if (selectedSeat !== booking.seatNumber) {
         throw new Error(
-          "Seat changes must be completed before payment confirmation.",
+          "Seat changes are not available during online check-in. Confirm the seat assigned to your booking.",
         );
       }
       setBooking((prev) =>
@@ -84,7 +108,7 @@ const CheckInPage = () => {
   };
   return (
     <div className="bg-background py-10 px-4 md:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="mx-auto max-w-4xl space-y-8">
         {/* Header */}
         <div className="text-center max-w-xl mx-auto">
           <span className="text-[11px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
@@ -94,8 +118,8 @@ const CheckInPage = () => {
             Flight Check-In & Boarding Pass
           </h1>
           <p className="text-xs md:text-sm text-muted mt-1.5 leading-relaxed">
-            Check in online between 24 hours and 90 minutes before scheduled
-            departure to choose your seat and obtain mobile boarding passes.
+            Check in between 24 hours and 90 minutes before departure to confirm
+            your assigned seat and access your boarding pass.
           </p>
         </div>
 
@@ -128,7 +152,7 @@ const CheckInPage = () => {
                 htmlFor="checkin-lastname"
                 className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1.5"
               >
-                Passenger Last Name
+                Passenger Last Name *
               </label>
               <input
                 id="checkin-lastname"
@@ -137,6 +161,7 @@ const CheckInPage = () => {
                 value={lastNameInput}
                 onChange={(e) => setLastNameInput(e.target.value)}
                 className="w-full bg-surface border border-border rounded-xl px-3.5 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                required
               />
             </div>
 
@@ -182,10 +207,18 @@ const CheckInPage = () => {
 
                 <div className="space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
-                    Check-in Opens in 18h 42m
+                    {checkInWindowState === "upcoming"
+                      ? `Check-in opens in ${formatRemainingTime(checkInOpensAt - Date.now())}`
+                      : checkInWindowState === "closed"
+                        ? "Check-in window closed"
+                        : "Schedule unavailable"}
                   </span>
                   <h2 className="text-xl font-black text-foreground">
-                    Online Check-In Is Not Yet Open
+                    {checkInWindowState === "upcoming"
+                      ? "Online check-in is not yet open"
+                      : checkInWindowState === "closed"
+                        ? "Online check-in has closed"
+                        : "Departure time is unavailable"}
                   </h2>
                   <p className="text-xs md:text-sm text-muted max-w-md mx-auto leading-relaxed">
                     TigerAirlines flight <strong>{booking.flightNumber}</strong>{" "}
@@ -193,7 +226,8 @@ const CheckInPage = () => {
                     <strong>
                       {booking.departureDate} at {booking.departureTime}
                     </strong>
-                    . Online check-in opens 24 hours prior to departure.
+                    . Online check-in is available from 24 hours until 90 minutes
+                    before the scheduled departure.
                   </p>
                 </div>
 
@@ -204,7 +238,7 @@ const CheckInPage = () => {
                   </p>
                   <ul className="list-disc list-inside text-muted space-y-1">
                     <li>
-                      Add checked luggage or special dietary meals via{" "}
+                      Review your itinerary and passenger details in{" "}
                       <a
                         href="/manage-booking"
                         className="text-primary font-bold underline"
@@ -224,36 +258,36 @@ const CheckInPage = () => {
               /* Check-in 3-Step Wizard */
               <div className="space-y-6">
                 {/* Stepper Progress */}
-                <div className="bg-surface rounded-2xl p-4 shadow-sm border border-border flex items-center justify-between text-xs">
+                <div className="bg-surface rounded-2xl p-4 shadow-sm border border-border flex items-center justify-between gap-1 text-xs">
                   <div
-                    className={`flex items-center gap-2 font-bold ${currentStep >= 1 ? "text-primary" : "text-muted"}`}
+                    className={`flex min-w-0 flex-col items-center gap-1 text-center font-bold sm:flex-row sm:gap-2 sm:text-left ${currentStep >= 1 ? "text-primary" : "text-muted"}`}
                   >
                     <span className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs">
                       1
                     </span>
-                    <span>Passenger Details</span>
+                    <span className="text-[10px] leading-tight sm:text-xs">Passenger details</span>
                   </div>
                   <ChevronRight size={16} className="text-muted" />
                   <div
-                    className={`flex items-center gap-2 font-bold ${currentStep >= 2 ? "text-primary" : "text-muted"}`}
+                    className={`flex min-w-0 flex-col items-center gap-1 text-center font-bold sm:flex-row sm:gap-2 sm:text-left ${currentStep >= 2 ? "text-primary" : "text-muted"}`}
                   >
                     <span
                       className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${currentStep >= 2 ? "bg-primary text-white" : "bg-surface-muted text-muted"}`}
                     >
                       2
                     </span>
-                    <span>Seat Selection</span>
+                    <span className="text-[10px] leading-tight sm:text-xs">Assigned seat</span>
                   </div>
                   <ChevronRight size={16} className="text-muted" />
                   <div
-                    className={`flex items-center gap-2 font-bold ${currentStep >= 3 ? "text-primary" : "text-muted"}`}
+                    className={`flex min-w-0 flex-col items-center gap-1 text-center font-bold sm:flex-row sm:gap-2 sm:text-left ${currentStep >= 3 ? "text-primary" : "text-muted"}`}
                   >
                     <span
                       className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${currentStep >= 3 ? "bg-primary text-white" : "bg-surface-muted text-muted"}`}
                     >
                       3
                     </span>
-                    <span>Boarding Pass</span>
+                    <span className="text-[10px] leading-tight sm:text-xs">Boarding pass</span>
                   </div>
                 </div>
 
@@ -287,7 +321,7 @@ const CheckInPage = () => {
                           Document / Passport
                         </span>
                         <p className="text-sm font-bold text-foreground mt-1">
-                          A10293847 (Nigeria)
+                          {booking.passportNumber || booking.documentNumber || "Not provided"}{booking.nationality ? ` (${booking.nationality})` : ""}
                         </p>
                       </div>
                       <div className="p-4 bg-background rounded-2xl border border-border">
@@ -295,7 +329,7 @@ const CheckInPage = () => {
                           Assigned Seat
                         </span>
                         <p className="text-sm font-bold text-primary mt-1 font-mono">
-                          {booking.seatNumber || "12A"}
+                          {booking.seatNumber || "Not assigned"}
                         </p>
                       </div>
                       <div className="p-4 bg-background rounded-2xl border border-border">
@@ -303,7 +337,9 @@ const CheckInPage = () => {
                           Checked Baggage
                         </span>
                         <p className="text-sm font-bold text-foreground mt-1">
-                          {booking.extras?.baggageKg || 20} kg Allowance
+                          {booking.extras?.baggageKg != null
+                            ? `${booking.extras.baggageKg} kg selected`
+                            : "No baggage selection"}
                         </p>
                       </div>
                     </div>
@@ -361,11 +397,10 @@ const CheckInPage = () => {
                     <div className="flex items-center justify-between pb-4 border-b border-border">
                       <div>
                         <h2 className="text-lg font-black text-foreground">
-                          Step 2: Confirm or Change Seat
+                          Step 2: Confirm Assigned Seat
                         </h2>
                         <p className="text-xs text-muted">
-                          Select an available seat for flight{" "}
-                          {booking.flightNumber}
+                          Confirm the seat assigned to flight {booking.flightNumber}. Seat changes are not available during online check-in.
                         </p>
                       </div>
                       <div className="bg-primary/10 border border-primary/25 px-3 py-1 rounded-xl text-xs font-mono font-bold text-primary">
@@ -398,22 +433,17 @@ const CheckInPage = () => {
                                   </div>
                                 );
                               const seatCode = `${row}${col}`;
-                              const isOccupied = [
-                                "4C",
-                                "5A",
-                                "7B",
-                                "9E",
-                                "11F",
-                              ].includes(seatCode);
+                              const isAssignedSeat = seatCode === booking.seatNumber;
+                              const isUnavailable = !isAssignedSeat; 
                               const isSelected = selectedSeat === seatCode;
                               return (
                                 <button
                                   key={seatCode}
                                   type="button"
-                                  disabled={isOccupied}
-                                  aria-label={`Seat ${seatCode}, ${isOccupied ? "Occupied" : "Available"}`}
+                                  disabled={isUnavailable}
+                                  aria-label={`Seat ${seatCode}, ${isAssignedSeat ? "Assigned to this booking" : "Not available for changes during check-in"}`}
                                   onClick={() => setSelectedSeat(seatCode)}
-                                  className={`w-7 h-7 rounded text-[11px] font-bold transition flex items-center justify-center cursor-pointer disabled:cursor-not-allowed ${isSelected ? "bg-primary text-white shadow-md ring-2 ring-primary/40" : isOccupied ? "bg-surface-muted text-muted" : "bg-surface hover:bg-primary/10 text-foreground border border-border"}`}
+                                  className={`w-7 h-7 rounded text-[11px] font-bold transition flex items-center justify-center disabled:cursor-not-allowed ${isSelected ? "bg-primary text-on-primary shadow-md ring-2 ring-primary/40" : "bg-surface-muted text-muted border border-border"}`}
                                 >
                                   {isSelected ? "\u2713" : col}
                                 </button>
@@ -439,7 +469,7 @@ const CheckInPage = () => {
                         onClick={handleCompleteCheckIn}
                         className="font-bold gap-2"
                       >
-                        <CheckCircle2 size={16} /> Confirm & Issue Boarding Pass
+                        <CheckCircle2 size={16} /> Complete Check-In
                       </Button>
                     </div>
                   </div>
@@ -459,9 +489,7 @@ const CheckInPage = () => {
                             Online Check-in Successful!
                           </p>
                           <p className="text-emerald-800">
-                            Your boarding pass has been generated. Please arrive
-                            at Lagos Airport at least 45 minutes before
-                            departure.
+                            Your boarding pass is ready for flight {booking.flightNumber} from {booking.origin}.
                           </p>
                         </div>
                       </div>

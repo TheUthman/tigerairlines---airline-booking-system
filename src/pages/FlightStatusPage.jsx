@@ -20,9 +20,7 @@ const FlightStatusPage = () => {
   const [flightNumberQuery, setFlightNumberQuery] = useState("");
   const [originQuery, setOriginQuery] = useState("");
   const [destinationQuery, setDestinationQuery] = useState("");
-  const [dateQuery, setDateQuery] = useState(
-    /* @__PURE__ */ new Date().toISOString().split("T")[0],
-  );
+  const [dateQuery, setDateQuery] = useState("");
   const [selectedFlight, setSelectedFlight] = useState(null);
   useEffect(() => {
     const loadFlights = async () => {
@@ -60,68 +58,61 @@ const FlightStatusPage = () => {
     } else {
       const matchOrigin =
         !originQuery ||
-        f.origin.code === originQuery ||
-        f.origin.city.toLowerCase().includes(originQuery.toLowerCase());
+        f.origin?.code === originQuery ||
+        f.origin?.city?.toLowerCase().includes(originQuery.toLowerCase());
       const matchDest =
         !destinationQuery ||
-        f.destination.code === destinationQuery ||
-        f.destination.city
-          .toLowerCase()
-          .includes(destinationQuery.toLowerCase());
-      return matchOrigin && matchDest;
+        f.destination?.code === destinationQuery ||
+        f.destination?.city?.toLowerCase().includes(destinationQuery.toLowerCase());
+      const matchDate =
+        !dateQuery || String(f.departureDate || "").slice(0, 10) === dateQuery;
+      return matchOrigin && matchDest && matchDate;
     }
   });
   const getStatusBadge = (status) => {
     switch (status) {
       case "BOARDING":
-        return <Badge variant="accent">Boarding Now</Badge>;
+        return <Badge variant="primary">Boarding</Badge>;
       case "DEPARTED":
-        return <Badge variant="blue">Departed</Badge>;
+      case "IN_AIR":
+      case "LANDED":
+      case "ARRIVED":
+        return <Badge variant="info">{status === "DEPARTED" || status === "IN_AIR" ? "Departed" : "Arrived"}</Badge>;
       case "DELAYED":
-        return <Badge variant="warning">Delayed 35m</Badge>;
+        return <Badge variant="warning">Delayed</Badge>;
       case "CANCELLED":
-        return <Badge variant="primary">Cancelled</Badge>;
+        return <Badge variant="error">Cancelled</Badge>;
       default:
-        return <Badge variant="success">On Schedule</Badge>;
+        return <Badge variant="info">Scheduled</Badge>;
     }
   };
-  const getTimelineSteps = (status) => {
-    const isCancelled = status === "CANCELLED";
-    const isDelayed = status === "DELAYED";
-    let currentStepIndex = 0;
-    if (status === "SCHEDULED") currentStepIndex = 0;
-    else if (status === "BOARDING") currentStepIndex = 1;
-    else if (status === "DEPARTED") currentStepIndex = 2;
-    else if (status === "DELAYED") currentStepIndex = 1;
-    else if (status === "CANCELLED") currentStepIndex = 0;
+  const getTimelineSteps = (status, flight) => {
+    const currentStepIndex = {
+      SCHEDULED: 0,
+      DELAYED: 0,
+      BOARDING: 1,
+      DEPARTED: 2,
+      IN_AIR: 3,
+      LANDED: 4,
+      ARRIVED: 4,
+      CANCELLED: 0,
+    }[status] ?? 0;
     return [
-      {
-        name: "Scheduled",
-        time: selectedFlight?.departureTime || "08:30",
-        completed: currentStepIndex >= 0,
-      },
-      {
-        name: "Boarding",
-        time: "Gate 2 \u2022 Row 1-15",
-        completed: currentStepIndex >= 1,
-      },
-      {
-        name: "Departed",
-        time: selectedFlight?.departureTime || "08:35",
-        completed: currentStepIndex >= 2,
-      },
-      {
-        name: "In Air",
-        time: "Cruising FL320",
-        completed: currentStepIndex >= 3,
-      },
-      {
-        name: "Landed",
-        time: selectedFlight?.arrivalTime || "11:45",
-        completed: currentStepIndex >= 4,
-      },
+      { name: "Scheduled", time: flight.departureTime || "No update", completed: currentStepIndex >= 0 },
+      { name: "Boarding",         time: flight.boardingTime || (flight.gate ? `Gate ${flight.gate}` : "No update"), completed: currentStepIndex >= 1 },
+      { name: "Departed", time: flight.actualDepartureTime || "No update", completed: currentStepIndex >= 2 },
+      { name: "In air", time: flight.cruisingAltitude ? `Flight level ${flight.cruisingAltitude}` : "No update", completed: currentStepIndex >= 3 },
+      { name: "Landed", time: flight.actualArrivalTime || "No update", completed: currentStepIndex >= 4 },
     ];
   };
+  const airportOptions = [
+    ...new Map(
+      flights
+        .flatMap((flight) => [flight.origin, flight.destination])
+        .filter((airport) => airport?.code)
+        .map((airport) => [airport.code, airport]),
+    ).values(),
+  ].sort((first, second) => String(first.city || "").localeCompare(String(second.city || "")));
   return (
     <div className="bg-background py-10 px-4 md:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -134,20 +125,19 @@ const FlightStatusPage = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
-              Live Flight Operations
+              Flight Operations
             </span>
             <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight mt-2">
-              Flight Status & Real-Time Tracker
+              Flight status
             </h1>
             <p className="text-xs text-muted mt-1">
-              Live airspace tracking for TigerAirlines arrivals and departures
-              at Lagos (LOS).
+              Search current schedules and the status information returned for each flight.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-semibold text-muted bg-surface border border-border px-3 py-1.5 rounded-xl shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Lagos Weather: Partly Cloudy • Visibility 8km • QNH 1012
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-muted">
+            <span className="font-mono text-foreground">{filteredFlights.length}</span>
+            <span>matching flights</span>
           </div>
         </div>
 
@@ -158,14 +148,14 @@ const FlightStatusPage = () => {
             <button
               type="button"
               onClick={() => setSearchMode("number")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${searchMode === "number" ? "bg-primary text-white shadow-xs" : "bg-surface-muted text-muted hover:bg-surface-muted"}`}
+              className={`min-h-11 rounded-xl px-4 py-2 text-xs font-bold transition ${searchMode === "number" ? "bg-primary text-on-primary shadow-xs" : "bg-surface-muted text-muted hover:bg-surface-muted"}`}
             >
               Search by Flight Number
             </button>
             <button
               type="button"
               onClick={() => setSearchMode("route")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${searchMode === "route" ? "bg-primary text-white shadow-xs" : "bg-surface-muted text-muted hover:bg-surface-muted"}`}
+              className={`min-h-11 rounded-xl px-4 py-2 text-xs font-bold transition ${searchMode === "route" ? "bg-primary text-on-primary shadow-xs" : "bg-surface-muted text-muted hover:bg-surface-muted"}`}
             >
               Search by Route & Date
             </button>
@@ -175,13 +165,14 @@ const FlightStatusPage = () => {
           {searchMode === "number" ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
+                <label htmlFor="flight-status-number" className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Flight Number
                 </label>
                 <div className="relative">
                   <input
-                    type="text"
-                    placeholder="e.g. TG-101, TG-204, TG-301..."
+                    id="flight-status-number"
+                    type="search"
+                    placeholder="Enter a flight number"
                     value={flightNumberQuery}
                     onChange={(e) => setFlightNumberQuery(e.target.value)}
                     className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm uppercase font-mono font-bold focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
@@ -213,47 +204,49 @@ const FlightStatusPage = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
+                <label htmlFor="flight-status-origin" className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Origin Airport
                 </label>
                 <select
+                  id="flight-status-origin"
                   value={originQuery}
                   onChange={(e) => setOriginQuery(e.target.value)}
                   className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 text-xs text-foreground focus:outline-none focus:border-primary"
                 >
-                  <option value="">All Origins</option>
-                  <option value="LOS">Lagos (LOS)</option>
-                  <option value="ABV">Abuja (ABV)</option>
-                  <option value="PHC">Port Harcourt (PHC)</option>
-                  <option value="KAN">Kano (KAN)</option>
-                  <option value="DXB">Dubai (DXB)</option>
+                  <option value="">All origins</option>
+                  {airportOptions.map((airport) => (
+                    <option key={airport.code} value={airport.code}>
+                      {airport.city ? `${airport.city} (${airport.code})` : airport.code}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
+                <label htmlFor="flight-status-destination" className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Destination Airport
                 </label>
                 <select
+                  id="flight-status-destination"
                   value={destinationQuery}
                   onChange={(e) => setDestinationQuery(e.target.value)}
                   className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 text-xs text-foreground focus:outline-none focus:border-primary"
                 >
-                  <option value="">All Destinations</option>
-                  <option value="ABV">Abuja (ABV)</option>
-                  <option value="LOS">Lagos (LOS)</option>
-                  <option value="PHC">Port Harcourt (PHC)</option>
-                  <option value="DXB">Dubai (DXB)</option>
-                  <option value="LHR">London (LHR)</option>
-                  <option value="JNB">Johannesburg (JNB)</option>
+                  <option value="">All destinations</option>
+                  {airportOptions.map((airport) => (
+                    <option key={airport.code} value={airport.code}>
+                      {airport.city ? `${airport.city} (${airport.code})` : airport.code}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
+                <label htmlFor="flight-status-date" className="block text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Date
                 </label>
                 <input
+                  id="flight-status-date"
                   type="date"
                   value={dateQuery}
                   onChange={(e) => setDateQuery(e.target.value)}
@@ -265,7 +258,8 @@ const FlightStatusPage = () => {
                 <Button
                   type="button"
                   variant="primary"
-                  className="w-full h-[38px] font-bold gap-2 text-xs"
+                  onClick={() => setSelectedFlight(filteredFlights[0] || null)}
+                  className="w-full min-h-11 font-bold gap-2 text-xs"
                 >
                   <Search size={14} /> Filter Routes
                 </Button>
@@ -284,7 +278,7 @@ const FlightStatusPage = () => {
                   setSelectedFlight(f);
                   setFlightNumberQuery(f.flightNumber);
                 }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold cursor-pointer transition ${selectedFlight?.id === f.id ? "bg-primary text-white shadow-xs" : "bg-surface-muted hover:bg-surface-muted text-foreground"}`}
+                className={`min-h-11 rounded-lg px-2.5 py-1 text-xs font-mono font-bold transition ${selectedFlight?.id === f.id ? "bg-primary text-on-primary shadow-xs" : "bg-surface-muted text-foreground hover:bg-surface-muted"}`}
               >
                 {f.flightNumber} ({f.origin.code}→{f.destination.code})
               </button>
@@ -305,12 +299,11 @@ const FlightStatusPage = () => {
                   />
                   <div>
                     <p className="font-bold text-sm text-amber-950">
-                      Flight {selectedFlight.flightNumber} is Delayed by 35
-                      Minutes
+                      Flight {selectedFlight.flightNumber} is delayed
+                      {selectedFlight.delayMinutes ? ` by ${selectedFlight.delayMinutes} minutes` : ""}
                     </p>
                     <p className="text-xs text-amber-800 mt-0.5">
-                      Departure revised due to ATC slot congestion and ground
-                      handling delay.
+                      {selectedFlight.delayReason || "Additional delay details are not available."}
                     </p>
                   </div>
                 </div>
@@ -340,8 +333,7 @@ const FlightStatusPage = () => {
                       Flight {selectedFlight.flightNumber} Has Been Cancelled
                     </p>
                     <p className="text-xs text-red-800 mt-0.5">
-                      Cancelled due to operational constraints at Lagos (LOS).
-                      Passengers are eligible for free rebooking.
+                      {selectedFlight.cancellationReason || "No further cancellation details are available."}
                     </p>
                   </div>
                 </div>
@@ -362,7 +354,7 @@ const FlightStatusPage = () => {
             {/* Flight Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-secondary text-white flex items-center justify-center font-black shadow-md">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-sm">
                   <Plane size={24} />
                 </div>
                 <div>
@@ -375,9 +367,9 @@ const FlightStatusPage = () => {
                   <p className="text-xs text-muted mt-0.5">
                     Aircraft:{" "}
                     <strong className="text-foreground">
-                      {selectedFlight.aircraft}
+                      {selectedFlight.aircraft || "Not provided"}
                     </strong>{" "}
-                    • Non-stop ({selectedFlight.duration})
+                    • {selectedFlight.stops === 0 ? "Non-stop" : selectedFlight.stops != null ? `${selectedFlight.stops} stops` : "Route details unavailable"}{selectedFlight.duration ? ` · ${selectedFlight.duration}` : ""}
                   </p>
                 </div>
               </div>
@@ -388,7 +380,7 @@ const FlightStatusPage = () => {
                     Terminal
                   </span>
                   <span className="font-bold text-foreground text-sm">
-                    T1 International
+                    {selectedFlight.terminal || "Not provided"}
                   </span>
                 </div>
                 <div className="h-6 w-px bg-surface-muted" />
@@ -397,7 +389,7 @@ const FlightStatusPage = () => {
                     Gate
                   </span>
                   <span className="font-bold text-primary text-sm font-mono">
-                    Gate 02
+                    {selectedFlight.gate || "Not provided"}
                   </span>
                 </div>
                 <div className="h-6 w-px bg-surface-muted" />
@@ -406,7 +398,7 @@ const FlightStatusPage = () => {
                     Baggage
                   </span>
                   <span className="font-bold text-foreground text-sm font-mono">
-                    Belt 03
+                    {selectedFlight.baggageBelt || "Not provided"}
                   </span>
                 </div>
               </div>
@@ -419,7 +411,7 @@ const FlightStatusPage = () => {
                   Departure
                 </p>
                 <p className="text-3xl font-black text-foreground mt-1">
-                  {selectedFlight.departureTime}
+                  {selectedFlight.departureTime || "—"}
                 </p>
                 <p className="text-sm font-bold text-foreground">
                   {selectedFlight.origin.code} - {selectedFlight.origin.name}
@@ -442,7 +434,7 @@ const FlightStatusPage = () => {
                   <div className="h-0.5 bg-surface-muted flex-1" />
                 </div>
                 <span className="text-[11px] text-muted">
-                  TigerAirlines Royal Fleet
+                  TigerAirlines schedule
                 </span>
               </div>
 
@@ -451,7 +443,7 @@ const FlightStatusPage = () => {
                   Estimated Arrival
                 </p>
                 <p className="text-3xl font-black text-foreground mt-1">
-                  {selectedFlight.arrivalTime}
+                  {selectedFlight.estimatedArrivalTime || selectedFlight.arrivalTime || "—"}
                 </p>
                 <p className="text-sm font-bold text-foreground">
                   {selectedFlight.destination.code} -{" "}
@@ -475,13 +467,13 @@ const FlightStatusPage = () => {
                 <div className="hidden sm:block absolute top-1/2 left-8 right-8 -translate-y-1/2 h-1 bg-surface-muted rounded-full z-0" />
 
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 relative z-10">
-                  {getTimelineSteps(selectedFlight.status).map((step, idx) => (
+                  {getTimelineSteps(selectedFlight.status, selectedFlight).map((step, idx) => (
                     <div
                       key={step.name}
-                      className={`flex sm:flex-col items-center gap-3 sm:gap-2 text-center p-3 rounded-2xl transition ${step.completed ? "bg-primary/10/60 sm:bg-transparent text-primary" : "bg-background/60 sm:bg-transparent text-muted"}`}
+                      className={`flex items-center gap-3 rounded-xl p-3 text-center transition sm:flex-col sm:gap-2 sm:rounded-none sm:bg-transparent sm:p-2 ${step.completed ? "bg-primary/5 text-primary" : "bg-background text-muted"}`}
                     >
                       <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition-all duration-200 ${step.completed ? "bg-primary text-white ring-4 ring-red-100" : "bg-surface-muted text-muted border border-border"}`}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition-all duration-200 ${step.completed ? "bg-primary text-on-primary ring-4 ring-primary/10" : "bg-surface-muted text-muted border border-border"}`}
                       >
                         {step.completed ? <CheckCircle2 size={16} /> : idx + 1}
                       </div>
@@ -506,15 +498,15 @@ const FlightStatusPage = () => {
         <div className="bg-surface rounded-3xl shadow-sm border border-border overflow-hidden">
           <div className="p-6 border-b border-border flex items-center justify-between">
             <h2 className="text-base font-black text-foreground">
-              Today's Scheduled Flights ({filteredFlights.length})
+              Scheduled flights ({filteredFlights.length})
             </h2>
             <span className="text-xs text-muted font-medium">
-              Click any row to track timeline
+              Select a flight to open its status timeline
             </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto" role="region" aria-label="Scheduled flight results" tabIndex={0}>
+            <table className="min-w-[760px] w-full text-left text-xs">
               <thead className="bg-background text-muted uppercase tracking-wider font-semibold border-b border-border">
                 <tr>
                   <th className="py-3 px-4">Flight</th>
@@ -538,13 +530,14 @@ const FlightStatusPage = () => {
                     <td colSpan={7} className="py-12 text-center">
                       <EmptyState
                         title="No Flights Found"
-                        description="No scheduled operations match your flight number or route filters today."
+                        description=                "No scheduled operations match these flight, route, or date filters."
                         actionLabel="Reset Search"
                         onAction={() => {
                           setFlightNumberQuery("");
                           setOriginQuery("");
-                          setDestinationQuery("");
-                        }}
+                            setDestinationQuery("");
+                            setDateQuery("");
+                          }}
                       />
                     </td>
                   </tr>
@@ -552,8 +545,7 @@ const FlightStatusPage = () => {
                   filteredFlights.map((f) => (
                     <tr
                       key={f.id}
-                      onClick={() => setSelectedFlight(f)}
-                      className={`hover:bg-surface-muted/80 transition cursor-pointer ${selectedFlight?.id === f.id ? "bg-primary/10/40" : ""}`}
+                      className={`${selectedFlight?.id === f.id ? "bg-primary/5" : "hover:bg-surface-muted/80"} transition`}
                     >
                       <td className="py-3.5 px-4 font-mono font-bold text-primary text-sm">
                         {f.flightNumber}
@@ -574,10 +566,10 @@ const FlightStatusPage = () => {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-foreground">
-                        {f.departureTime}
+                        {f.departureTime || "—"}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-muted">
-                        {f.status === "DELAYED" ? "09:05" : f.departureTime}
+                        {f.estimatedDepartureTime || (f.status === "DELAYED" ? "Awaiting update" : f.departureTime || "—")}
                       </td>
                       <td className="py-3.5 px-4 text-muted font-medium">
                         {f.aircraft}
@@ -586,9 +578,14 @@ const FlightStatusPage = () => {
                         {getStatusBadge(f.status)}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <span className="text-primary font-bold text-xs inline-flex items-center gap-1 hover:underline">
-                          Track <ChevronRight size={14} />
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFlight(f)}
+                          aria-label={`Track flight ${f.flightNumber}`}
+                          className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-xs font-bold text-primary hover:bg-primary/10 focus-visible:outline-offset-2"
+                        >
+                          Track <ChevronRight size={14} aria-hidden="true" />
+                        </button>
                       </td>
                     </tr>
                   ))

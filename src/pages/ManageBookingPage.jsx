@@ -51,8 +51,8 @@ const ManageBookingPage = () => {
       );
       setBooking(res.data || null);
       if (res.data) {
-        setSelectedSeat(res.data.seatNumber || "12A");
-        setSelectedBaggage(res.data.extras?.baggageKg || 20);
+        setSelectedSeat(res.data.seatNumber || "");
+        setSelectedBaggage(res.data.extras?.baggageKg ?? 0);
         setSelectedMeal(res.data.extras?.mealPreference || "Standard Meal");
         setHasPriorityBoarding(!!res.data.extras?.priorityBoarding);
         setHasInsurance(!!res.data.extras?.travelInsurance);
@@ -79,16 +79,22 @@ const ManageBookingPage = () => {
     setCancelLoading(true);
     try {
       const res = await bookingService.cancelBooking(booking.id);
-      const refund =
-        res.data?.refundAmount ?? Math.max(0, booking.totalAmount - 50);
+      const refundAmount = res.data?.refundAmount;
       setBooking((prev) =>
         prev
-          ? { ...prev, status: "CANCELLED", paymentStatus: "REFUNDED" }
+          ? {
+              ...prev,
+              ...res.data,
+              status: res.data?.status || "CANCELLED",
+              ...(refundAmount === undefined ? {} : { refundAmount }),
+            }
           : null,
       );
       setShowCancelModal(false);
       toast.warning(
-        `Booking ${booking.pnr} has been cancelled. A refund of $${refund.toFixed(2)} was credited to your original payment card.`,
+        refundAmount === undefined
+          ? `Booking ${booking.pnr} was cancelled. Refund status is not available yet.`
+          : `Booking ${booking.pnr} was cancelled. Service-reported refund: ${formatNaira(refundAmount)}.`,
         "Booking Cancelled",
       );
     } catch (err) {
@@ -154,6 +160,8 @@ const ManageBookingPage = () => {
         return <Badge variant="success">Confirmed & Ticketed</Badge>;
       case "CANCELLED":
         return <Badge variant="primary">Cancelled</Badge>;
+      case "PENDING_PAYMENT":
+        return <Badge variant="warning">Payment Pending</Badge>;
       case "PENDING":
         return <Badge variant="warning">Pending Confirmation</Badge>;
       default:
@@ -161,8 +169,8 @@ const ManageBookingPage = () => {
     }
   };
   return (
-    <div className="bg-background py-10 px-4 md:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <main className="page-container space-y-8 py-8 md:py-10">
+      <div className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="text-center max-w-xl mx-auto">
           <span className="text-[11px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
@@ -272,9 +280,10 @@ const ManageBookingPage = () => {
                     This Booking is Cancelled
                   </p>
                   <p className="text-muted mt-0.5">
-                    Your reservation has been cancelled. An electronic refund of{" "}
-                    {formatNaira(Math.max(0, booking.totalAmount - 15e3))} has
-                    been credited back to your original payment method.
+                    Your reservation has been cancelled.
+                    {booking.refundAmount !== undefined
+                      ? ` The booking service reported a refund of ${formatNaira(booking.refundAmount)}.`
+                      : " Refund status is not available yet; check your payment provider for updates."}
                   </p>
                 </div>
               </div>
@@ -297,12 +306,16 @@ const ManageBookingPage = () => {
                 </div>
 
                 <div className="text-right sm:text-right">
-                  <p className="text-xs text-muted">Total Paid</p>
-                  <p className="text-2xl font-black text-foreground">
-                    ${booking.totalAmount}
+                  <p className="text-xs text-muted">
+                    {booking.paymentStatus === "PAID" ? "Total paid" : "Booking total"}
                   </p>
-                  <span className="text-[11px] font-semibold text-emerald-600">
-                    Payment {booking.paymentStatus}
+                  <p className="text-2xl font-black text-foreground">
+                    {formatNaira(booking.totalAmount ?? booking.amount ?? 0)}
+                  </p>
+                  <span
+                    className={`text-[11px] font-semibold ${booking.paymentStatus === "PAID" ? "text-emerald-600" : booking.paymentStatus === "FAILED" ? "text-red-600" : "text-amber-600"}`}
+                  >
+                    Payment {booking.paymentStatus || "status unavailable"}
                   </span>
                 </div>
               </div>
@@ -326,7 +339,11 @@ const ManageBookingPage = () => {
 
                 <div className="flex flex-col items-center justify-center text-center space-y-1">
                   <span className="text-[10px] font-mono font-bold text-muted bg-surface border border-border px-2.5 py-0.5 rounded-full">
-                    Direct • Non-Stop
+                    {booking.stops === 0
+                      ? "Non-stop"
+                      : booking.stops !== undefined
+                        ? `${booking.stops} stop${booking.stops === 1 ? "" : "s"}`
+                        : "Itinerary details"}
                   </span>
                   <div className="w-full flex items-center gap-2 text-muted">
                     <div className="h-0.5 bg-surface-muted flex-1" />
@@ -337,7 +354,7 @@ const ManageBookingPage = () => {
                     <div className="h-0.5 bg-surface-muted flex-1" />
                   </div>
                   <span className="text-[11px] font-medium text-muted">
-                    TigerAirlines Airbus A320
+                    {booking.aircraftType || booking.aircraft?.model || "Aircraft details pending"}
                   </span>
                 </div>
 
@@ -345,7 +362,9 @@ const ManageBookingPage = () => {
                   <p className="text-[11px] font-bold uppercase text-muted">
                     Arrival Destination
                   </p>
-                  <p className="text-lg font-black text-foreground">11:45</p>
+                  <p className="text-lg font-black text-foreground">
+                    {booking.arrivalTime || "To be confirmed"}
+                  </p>
                   <p className="text-xs font-semibold text-foreground">
                     {booking.destination}
                   </p>
@@ -364,11 +383,10 @@ const ManageBookingPage = () => {
                     : [
                         {
                           id: "1",
-                          firstName: booking.passengerName.split(" ")[0],
-                          lastName: booking.passengerName.split(" ")[1] || "",
+                          firstName: (booking.passengerName || "Passenger").split(" ")[0],
+                          lastName: (booking.passengerName || "").split(" ").slice(1).join(" "),
                           seat: booking.seatNumber,
-                          ticketNumber: "075-8910245190",
-                          passportNumber: "P7829104",
+                          ticketNumber: booking.ticketNumber,
                         },
                       ]
                   ).map((p, idx) => (
@@ -385,7 +403,7 @@ const ManageBookingPage = () => {
                             {p.firstName} {p.lastName}
                           </p>
                           <p className="text-[11px] text-muted font-mono">
-                            Ticket: {p.ticketNumber || "075-4819204"}
+                            Ticket: {p.ticketNumber || "Not issued"}
                           </p>
                         </div>
                       </div>
@@ -394,7 +412,7 @@ const ManageBookingPage = () => {
                           Seat
                         </span>
                         <span className="text-sm font-black text-primary font-mono bg-primary/10 px-2 py-0.5 rounded border border-primary/25">
-                          {p.seat || booking.seatNumber || "12A"}
+                          {p.seat || booking.seatNumber || "Unassigned"}
                         </span>
                       </div>
                     </div>
@@ -413,7 +431,9 @@ const ManageBookingPage = () => {
                       <Luggage size={12} /> Baggage
                     </p>
                     <p className="font-bold text-foreground mt-1">
-                      {booking.extras?.baggageKg || 20} kg Checked
+                      {booking.extras?.baggageKg != null
+                        ? `${booking.extras.baggageKg} kg checked`
+                        : "Not selected"}
                     </p>
                   </div>
                   <div className="p-3 bg-background rounded-xl border border-border">
@@ -421,7 +441,7 @@ const ManageBookingPage = () => {
                       <Utensils size={12} /> In-Flight Meal
                     </p>
                     <p className="font-bold text-foreground mt-1">
-                      {booking.extras?.mealPreference || "Standard Meal"}
+                      {booking.extras?.mealPreference || "Not selected"}
                     </p>
                   </div>
                   <div className="p-3 bg-background rounded-xl border border-border">
@@ -454,7 +474,7 @@ const ManageBookingPage = () => {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={booking.status === "CANCELLED"}
+                    disabled={booking.status !== "PENDING_PAYMENT"}
                     onClick={() => setShowSeatModal(true)}
                     className="gap-1.5 font-bold"
                   >
@@ -508,8 +528,9 @@ const ManageBookingPage = () => {
             </div>
           </div>
         )}
+      </div>
 
-        {/* MODAL 1: Cancellation Flow with Policy Card & Fee Breakdown */}
+      {/* MODAL 1: Cancellation Flow with Policy Card & Fee Breakdown */}
         {showCancelModal && booking && (
           <div
             role="dialog"
@@ -557,7 +578,7 @@ const ManageBookingPage = () => {
                 <div className="flex justify-between text-muted">
                   <span>Original Ticket Total Paid:</span>
                   <span className="font-mono font-bold text-foreground">
-                    ₦{booking.totalAmount.toLocaleString("en-NG")}
+                    {formatNaira(booking.totalAmount ?? booking.amount ?? 0)}
                   </span>
                 </div>
                 <div className="flex justify-between text-red-600">
@@ -567,9 +588,8 @@ const ManageBookingPage = () => {
                 <div className="pt-2 border-t border-border flex justify-between text-sm font-black text-foreground">
                   <span>Estimated Net Refund:</span>
                   <span className="font-mono text-emerald-600 text-base">
-                    ₦
-                    {Math.max(0, booking.totalAmount - 15e3).toLocaleString(
-                      "en-NG",
+                    {formatNaira(
+                      Math.max(0, (booking.totalAmount ?? booking.amount ?? 0) - 15_000),
                     )}
                   </span>
                 </div>
@@ -852,8 +872,7 @@ const ManageBookingPage = () => {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </main>
   );
 };
 var stdin_default = ManageBookingPage;

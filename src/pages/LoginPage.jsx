@@ -19,6 +19,7 @@ import { loginSuccess } from "../features/auth/authSlice";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { useToast } from "../components/ui/Toast";
+import AuthShell from "../components/layout/AuthShell";
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -82,11 +83,9 @@ const LoginPage = () => {
     }
   };
   return (
-    <div
-      ref={containerRef}
-      className="bg-background flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8"
-    >
-      <div className="max-w-md w-full space-y-8 login-card bg-surface p-8 md:p-10 rounded-3xl shadow-xl border border-border">
+    <div ref={containerRef} className="auth-page">
+      <AuthShell>
+        <div className="max-w-md w-full space-y-8 login-card bg-surface p-6 sm:p-8 md:p-10 rounded-2xl shadow-sm border border-border">
         {/* Header */}
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2 group">
@@ -215,7 +214,8 @@ const LoginPage = () => {
             Register for free
           </Link>
         </div>
-      </div>
+        </div>
+      </AuthShell>
     </div>
   );
 };

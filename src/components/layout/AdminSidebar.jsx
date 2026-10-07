@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Plane,
@@ -10,137 +10,174 @@ import {
   ExternalLink,
   ChevronRight,
   Shield,
+  X,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../../app/store";
 import { logout } from "../../features/auth/authSlice";
+
+const navigationGroups = [
+  {
+    label: "Overview",
+    items: [
+      {
+        to: "/admin",
+        label: "Dashboard & reports",
+        icon: <LayoutDashboard size={18} aria-hidden="true" />,
+        end: true,
+      },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      {
+        to: "/admin/flights",
+        label: "Flights",
+        icon: <Plane size={18} aria-hidden="true" />,
+      },
+      {
+        to: "/admin/aircraft",
+        label: "Fleet & aircraft",
+        icon: <Compass size={18} aria-hidden="true" />,
+      },
+      {
+        to: "/admin/airports",
+        label: "Airports & terminals",
+        icon: <Building2 size={18} aria-hidden="true" />,
+      },
+    ],
+  },
+  {
+    label: "Customers",
+    items: [
+      {
+        to: "/admin/passengers",
+        label: "Passengers",
+        icon: <Users size={18} aria-hidden="true" />,
+      },
+      {
+        to: "/admin/bookings",
+        label: "Reservations & PNRs",
+        icon: <CreditCard size={18} aria-hidden="true" />,
+      },
+      {
+        to: "/admin/users",
+        label: "User access",
+        icon: <Shield size={18} aria-hidden="true" />,
+      },
+    ],
+  },
+];
+
 const AdminSidebar = ({ onClose }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
-  const menuItems = [
-    {
-      to: "/admin",
-      label: "Dashboard & Reports",
-      icon: <LayoutDashboard size={18} />,
-      end: true,
-    },
-    {
-      to: "/admin/flights",
-      label: "Flights Management",
-      icon: <Plane size={18} />,
-    },
-    {
-      to: "/admin/aircraft",
-      label: "Fleet & Aircraft",
-      icon: <Compass size={18} />,
-    },
-    {
-      to: "/admin/airports",
-      label: "Airports & Terminals",
-      icon: <Building2 size={18} />,
-    },
-    {
-      to: "/admin/passengers",
-      label: "Passengers Registry",
-      icon: <Users size={18} />,
-    },
-    {
-      to: "/admin/bookings",
-      label: "Reservations & PNRs",
-      icon: <CreditCard size={18} />,
-    },
-    {
-      to: "/admin/users",
-      label: "User Access & Roles",
-      icon: <Shield size={18} />,
-    },
-  ];
+
   const handleLogout = () => {
     dispatch(logout());
     navigate("/admin/login");
   };
+
   return (
-    <aside className="w-64 bg-background text-muted flex flex-col justify-between h-screen sticky top-0 border-r border-white/10 shrink-0 z-30">
-      {/* Brand Header */}
+    <aside className="flex h-full min-h-screen w-[17rem] shrink-0 flex-col justify-between border-r border-white/10 bg-[#171717] text-white shadow-xl lg:sticky lg:top-0 lg:h-screen lg:min-h-0 lg:shadow-none">
       <div>
-        <div className="h-16 px-6 flex items-center justify-between border-b border-white/10 bg-background">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#fff8f1] border border-orange-200/80 flex items-center justify-center shadow-sm overflow-hidden">
-              <img
-                src="/logo.svg"
-                alt="TigerAirlines logo"
-                className="w-7 h-7 object-contain"
-              />
-            </div>
-            <div>
-              <span className="font-extrabold text-white text-base tracking-tight">
-                Tiger
+        <div className="flex h-[4.5rem] items-center justify-between border-b border-white/10 px-5">
+          <Link to="/admin" className="flex min-w-0 items-center gap-3" onClick={onClose}>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5">
+              <img src="/logo.svg" alt="" className="h-full w-full object-contain" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-extrabold tracking-tight">
+                Tiger<span className="text-primary">Airlines</span>
               </span>
-              <span className="font-extrabold text-secondary text-base ml-0.5">
-                Admin
+              <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                Operations
               </span>
-            </div>
-          </div>
-          <span className="text-[10px] font-mono uppercase bg-white/10 text-secondary px-2 py-0.5 rounded-full font-bold">
+            </span>
+          </Link>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-2 text-white/65 transition hover:bg-white/10 hover:text-white focus-visible:outline-white lg:hidden"
+              aria-label="Close admin navigation"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+
+        <div className="mx-3 mt-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.045] p-3.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-[#171717]">
+            {user?.name?.charAt(0)?.toUpperCase() || "A"}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-bold text-white">
+              {user?.name || "Administrator"}
+            </span>
+            <span className="mt-0.5 block truncate text-[10px] font-semibold uppercase tracking-wider text-white/55">
+              {user?.role || "Administrator"}
+            </span>
+          </span>
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider text-primary">
             OPS
           </span>
         </div>
 
-        {/* User Card */}
-        <div className="p-4 mx-3 my-4 bg-white/10 rounded-2xl border border-white/10 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary text-white font-bold flex items-center justify-center text-sm shrink-0 shadow-xs">
-            {user?.name?.charAt(0) || "A"}
-          </div>
-          <div className="overflow-hidden">
-            <p className="text-xs font-bold text-white truncate">
-              {user?.name || "Administrator"}
-            </p>
-            <p className="text-[10px] text-secondary font-semibold uppercase tracking-wider">
-              {user?.role || "ADMINISTRATOR"}
-            </p>
-          </div>
-        </div>
-
-        {/* Navigation links */}
-        <nav className="px-3 space-y-1">
-          {menuItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors duration-150 ${isActive ? "bg-primary text-white shadow-sm" : "text-muted hover:text-white hover:bg-white/10"}`
-              }
-            >
-              {item.icon}
-              <span className="flex-1">{item.label}</span>
-            </NavLink>
+        <nav aria-label="Operations navigation" className="space-y-5 px-3 pb-5 pt-5">
+          {navigationGroups.map((group) => (
+            <div key={group.label}>
+              <h2 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
+                {group.label}
+              </h2>
+              <div className="space-y-1">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors focus-visible:outline-white ${
+                        isActive
+                          ? "bg-primary font-semibold text-[#171717] shadow-sm"
+                          : "text-white/65 hover:bg-white/[0.07] hover:text-white"
+                      }`
+                    }
+                  >
+                    {item.icon}
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
       </div>
 
-      {/* Footer Actions */}
-      <div className="p-4 border-t border-white/10 space-y-2">
-        <NavLink
+      <div className="space-y-1 border-t border-white/10 p-3">
+        <Link
           to="/"
-          className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-muted hover:text-white hover:bg-white/10 transition"
+          onClick={onClose}
+          className="flex items-center justify-between rounded-lg px-3 py-2.5 text-xs font-medium text-white/60 transition hover:bg-white/[0.07] hover:text-white focus-visible:outline-white"
         >
-          <span className="flex items-center gap-2">
-            <ExternalLink size={14} /> Customer Portal
+          <span className="flex items-center gap-2.5">
+            <ExternalLink size={15} aria-hidden="true" /> Customer portal
           </span>
-          <ChevronRight size={14} />
-        </NavLink>
-
+          <ChevronRight size={15} aria-hidden="true" />
+        </Link>
         <button
+          type="button"
           onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-950/40 transition cursor-pointer"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs font-medium text-white/60 transition hover:bg-red-500/10 hover:text-red-300 focus-visible:outline-white"
         >
-          <LogOut size={14} /> Sign Out of Ops
+          <LogOut size={15} aria-hidden="true" /> Sign out
         </button>
       </div>
     </aside>
   );
 };
-var stdin_default = AdminSidebar;
-export { AdminSidebar, stdin_default as default };
+
+export { AdminSidebar };
+export default AdminSidebar;

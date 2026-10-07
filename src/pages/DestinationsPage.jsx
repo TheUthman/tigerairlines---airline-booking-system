@@ -1,61 +1,77 @@
 import { useNavigate } from "react-router-dom";
-import { Plane, ArrowRight } from "lucide-react";
+import { ArrowRight, Plane } from "lucide-react";
 import Button from "../components/ui/Button";
 import { useAppDispatch } from "../app/store";
 import { setSearchParams } from "../features/booking/bookingSlice";
+import { formatNaira } from "../utils/formatNaira";
+
+const destinations = [
+  {
+    city: "Abuja",
+    country: "Nigeria",
+    code: "ABV",
+    price: 45e3,
+    image:
+      "https://images.unsplash.com/photo-1612874983384-bf5e47db3d07?w=800&auto=format&fit=crop&q=80",
+    description:
+      "Nigeria’s Federal Capital Territory — Aso Rock, national monuments, and a relaxed cosmopolitan lifestyle.",
+  },
+  {
+    city: "Port Harcourt",
+    country: "Nigeria",
+    code: "PHC",
+    price: 38e3,
+    image:
+      "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=800&auto=format&fit=crop&q=80",
+    description:
+      "The Garden City and commercial heart of Nigeria’s oil-rich Niger Delta region.",
+  },
+  {
+    city: "Kano",
+    country: "Nigeria",
+    code: "KAN",
+    price: 52e3,
+    image:
+      "https://images.unsplash.com/photo-1598881034666-5e30c9b08fcf?w=800&auto=format&fit=crop&q=80",
+    description:
+      "An ancient city known for colourful leather markets, textiles, and the Emir’s Palace.",
+  },
+  {
+    city: "Dubai",
+    country: "UAE",
+    code: "DXB",
+    price: 42e4,
+    image:
+      "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&auto=format&fit=crop&q=80",
+    description:
+      "Architectural landmarks, luxury shopping, and desert experiences.",
+  },
+  {
+    city: "London",
+    country: "United Kingdom",
+    code: "LHR",
+    price: 48e4,
+    image:
+      "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&auto=format&fit=crop&q=80",
+    description:
+      "World-class museums, historic landmarks, and a vibrant Nigerian community.",
+  },
+  {
+    city: "Johannesburg",
+    country: "South Africa",
+    code: "JNB",
+    price: 31e4,
+    image:
+      "https://images.unsplash.com/photo-1559229750-60b7df976107?w=800&auto=format&fit=crop&q=80",
+    description:
+      "Vibrant city culture, Soweto history, and a gateway to southern Africa.",
+  },
+];
+
 const DestinationsPage = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const destinations = [
-    {
-      city: "Abuja",
-      country: "Nigeria",
-      code: "ABV",
-      price: 45e3,
-      image: "https://images.unsplash.com/photo-1612874983384-bf5e47db3d07?w=600&auto=format&fit=crop&q=80",
-      description: "Nigeria's Federal Capital Territory \u2014 Aso Rock, national monuments, and a laid-back cosmopolitan lifestyle."
-    },
-    {
-      city: "Port Harcourt",
-      country: "Nigeria",
-      code: "PHC",
-      price: 38e3,
-      image: "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=600&auto=format&fit=crop&q=80",
-      description: "The Garden City and commercial heart of Nigeria's oil-rich Niger Delta region."
-    },
-    {
-      city: "Kano",
-      country: "Nigeria",
-      code: "KAN",
-      price: 52e3,
-      image: "https://images.unsplash.com/photo-1598881034666-5e30c9b08fcf?w=600&auto=format&fit=crop&q=80",
-      description: "Ancient city famous for its colourful leather markets, textiles, and Emir's Palace."
-    },
-    {
-      city: "Dubai",
-      country: "UAE",
-      code: "DXB",
-      price: 42e4,
-      image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&auto=format&fit=crop&q=80",
-      description: "Architectural marvels, luxury shopping, and unforgettable desert safari experiences."
-    },
-    {
-      city: "London",
-      country: "United Kingdom",
-      code: "LHR",
-      price: 48e4,
-      image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&auto=format&fit=crop&q=80",
-      description: "World-class museums, iconic landmarks, and the vibrant Nigerian diaspora hub of Peckham."
-    },
-    {
-      city: "Johannesburg",
-      country: "South Africa",
-      code: "JNB",
-      price: 31e4,
-      image: "https://images.unsplash.com/photo-1559229750-60b7df976107?w=600&auto=format&fit=crop&q=80",
-      description: "Vibrant Jozi streetlife, Soweto township tours, and the gateway to sub-Saharan Africa."
-    }
-  ];
+
   const handleBook = (code) => {
     dispatch(
       setSearchParams({
@@ -65,76 +81,88 @@ const DestinationsPage = () => {
         returnDate: "2026-10-22",
         tripType: "roundTrip",
         cabinClass: "Economy",
-        passengersCount: 1
-      })
+        passengersCount: 1,
+      }),
     );
     navigate(`/search?from=LOS&to=${code}`);
   };
-  return <div className="bg-background py-12 px-4 md:px-8">
-      <div className="max-w-7xl mx-auto space-y-10">
-        <div className="text-center max-w-2xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-wider text-primary">Explore The World</span>
-          <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mt-1">
-            International & Domestic Destinations from Nigeria
-          </h1>
-          <p className="text-xs md:text-sm text-muted mt-2">
-            Fly directly from Lagos, Abuja and Port Harcourt to domestic destinations and international hubs aboard TigerAirlines modern fleet.
+
+  return (
+    <main className="page-container space-y-8 py-10 md:py-12">
+      <header className="page-header">
+        <div>
+          <p className="page-kicker">Destination guide</p>
+          <h1 className="page-title">Choose your next destination</h1>
+          <p className="page-description">
+            Explore the current Tiger Airlines route collection, from Nigerian city breaks to international hubs.
           </p>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {destinations.map((dest) => <div
-    key={dest.code}
-    className="bg-surface rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-border flex flex-col justify-between group"
-  >
-              <div className="relative h-52 overflow-hidden">
-                <img
-    src={dest.image}
-    alt={dest.city}
-    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-  />
-                <div className="absolute top-3 right-3 bg-primary text-white p-1.5 rounded-lg shadow-md">
-                  <Plane size={14} className="-rotate-45" />
-                </div>
-                <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-xs text-white px-3 py-1 rounded-full text-xs font-mono font-bold">
-                  LOS → {dest.code}
-                </div>
-              </div>
-
-              <div className="p-6 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-baseline mb-1">
-                    <h3 className="text-xl font-black text-foreground">{dest.city}</h3>
-                    <span className="text-xs font-semibold text-muted">{dest.country}</span>
-                  </div>
-                  <p className="text-xs text-muted line-clamp-2 mt-2 leading-relaxed">
-                    {dest.description}
-                  </p>
-                </div>
-
-                <div className="pt-6 mt-4 border-t border-border flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-muted uppercase font-semibold block">Starting from</span>
-                    <span className="text-xl font-black text-primary">₦{dest.price.toLocaleString("en-NG")}</span>
-                  </div>
-                  <Button
-    variant="accent"
-    size="sm"
-    onClick={() => handleBook(dest.code)}
-    className="font-bold flex items-center gap-1.5"
-  >
-                    <span>Book Flight</span>
-                    <ArrowRight size={14} />
-                  </Button>
-                </div>
-              </div>
-            </div>)}
+        <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-muted">
+          <Plane size={17} className="text-primary" aria-hidden="true" />
+          Departing from <span className="font-mono font-bold text-foreground">LOS</span>
         </div>
+      </header>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {destinations.map((destination) => (
+          <article
+            key={destination.code}
+            className="group overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="relative h-52 overflow-hidden bg-surface-muted sm:h-56">
+              <img
+                src={destination.image}
+                alt={`${destination.city}, ${destination.country}`}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              />
+              <span className="absolute left-3 top-3 rounded-lg border border-white/20 bg-[#171717]/75 px-3 py-1.5 font-mono text-xs font-semibold text-white backdrop-blur-sm">
+                LOS → {destination.code}
+              </span>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xl font-semibold tracking-tight text-foreground">
+                    {destination.city}
+                  </p>
+                  <p className="mt-1 text-sm text-muted">{destination.country}</p>
+                </div>
+                <span className="rounded-lg border border-primary/20 bg-primary-soft px-2.5 py-1.5 font-mono text-xs font-bold text-primary-dark dark:text-primary">
+                  {destination.code}
+                </span>
+              </div>
+
+              <p className="mt-4 min-h-12 text-sm leading-relaxed text-muted">
+                {destination.description}
+              </p>
+
+              <div className="mt-5 flex items-end justify-between gap-3 border-t border-border pt-4">
+                <div>
+                  <span className="block text-xs font-medium text-muted">Starting from</span>
+                  <span className="mt-1 block text-lg font-semibold text-foreground">
+                    {formatNaira(destination.price)}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleBook(destination.code)}
+                  className="shrink-0"
+                >
+                  Search flights <ArrowRight size={14} aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          </article>
+        ))}
       </div>
-    </div>;
+    </main>
+  );
 };
-var stdin_default = DestinationsPage;
-export {
-  DestinationsPage,
-  stdin_default as default
-};
+
+export { DestinationsPage };
+export default DestinationsPage;

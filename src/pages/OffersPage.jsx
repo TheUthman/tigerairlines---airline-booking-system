@@ -1,121 +1,149 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Tag, Copy, Check, ArrowRight } from "lucide-react";
+import { ArrowRight, Check, Copy, Tag } from "lucide-react";
+
+const offers = [
+  {
+    code: "TIGER2026",
+    discount: "20% OFF",
+    title: "Lagos to London Escape",
+    desc: "Valid on Economy and Business bookings from Lagos to London Heathrow.",
+    validTill: "01 June 2026",
+    validUntil: "2026-06-01",
+    badge: "Bestseller",
+  },
+  {
+    code: "NAIJA5",
+    discount: "5% OFF",
+    title: "All Domestic Round Trips",
+    desc: "Discount on return trips across Lagos, Abuja, Port Harcourt, and Kano.",
+    validTill: "31 December 2026",
+    validUntil: "2026-12-31",
+    badge: "Popular",
+  },
+  {
+    code: "ABJ45K",
+    discount: "₦45,000 Fixed Fare",
+    title: "Weekend Abuja Flash Deal",
+    desc: "Non-stop Lagos–Abuja flights on Fridays and Sundays. Limited seats available.",
+    validTill: "30 November 2026",
+    validUntil: "2026-11-30",
+    badge: "Limited seats",
+  },
+];
 
 const OffersPage = () => {
   const navigate = useNavigate();
   const [copiedCode, setCopiedCode] = useState(null);
-  const offers = [
-    {
-      code: "TIGER2026",
-      discount: "20% OFF",
-      title: "Lagos to London Escape",
-      desc: "Valid on all Economy and Business class bookings from Lagos to London Heathrow.",
-      validTill: "01 June 2026",
-      badge: "Bestseller",
-      theme: "primary"
-    },
-    {
-      code: "NAIJA5",
-      discount: "5% OFF",
-      title: "All Domestic Round Trips",
-      desc: "Automatic discount on any return ticket on Nigerian domestic routes — Lagos, Abuja, PHC, Kano.",
-      validTill: "31 December 2026",
-      badge: "Popular",
-      theme: "gold"
-    },
-    {
-      code: "ABJ45K",
-      discount: "₦45,000 Fixed Fare",
-      title: "Weekend Abuja Flash Deal",
-      desc: "Non-stop flights from Lagos to Abuja every Friday & Sunday. Limited seats available.",
-      validTill: "30 November 2026",
-      badge: "Limited Seats",
-      theme: "dark"
+  const [copyUnavailable, setCopyUnavailable] = useState(false);
+
+  const handleCopy = async (code, validUntil) => {
+    if (new Date(`${validUntil}T23:59:59`).getTime() < Date.now()) return;
+
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+      setCopyUnavailable(false);
+      window.setTimeout(() => setCopiedCode(null), 2500);
+    } catch {
+      setCopyUnavailable(true);
     }
-  ];
-
-  const themeClasses = {
-    primary: "bg-gradient-to-br from-primary to-primary-dark text-white",
-    gold: "bg-gradient-to-br from-secondary to-secondary-hover text-on-secondary",
-    dark: "bg-gradient-to-br from-[#1a1a1a] to-primary-dark text-white"
-  };
-
-  const mutedText = {
-    primary: "text-white/80",
-    gold: "text-on-secondary/80",
-    dark: "text-white/80"
-  };
-
-  const handleCopy = (code) => {
-    navigator.clipboard?.writeText(code);
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2500);
   };
 
   return (
-    <div className="bg-background py-12 px-4 md:px-8">
-      <div className="max-w-6xl mx-auto space-y-10">
-        <div className="text-center max-w-2xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-wider text-primary">Exclusive Promos</span>
-          <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mt-1">
-            Flight Deals & Promo Codes
-          </h1>
-          <p className="text-sm text-muted mt-2">
-            Save on your upcoming journeys with official TigerAirlines seasonal promotions and vouchers.
+    <main className="page-container space-y-8 py-10 md:py-12">
+      <header className="page-header">
+        <div>
+          <p className="page-kicker">Featured fares</p>
+          <h1 className="page-title">Offers & promo codes</h1>
+          <p className="page-description">
+            Review the current offer details and validity before you book.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => navigate("/search")}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover focus-visible:outline-offset-2"
+        >
+          Browse flights <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {offers.map((offer) => (
-            <div
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {offers.map((offer) => {
+          const isExpired =
+            new Date(`${offer.validUntil}T23:59:59`).getTime() < Date.now();
+          const isCopied = copiedCode === offer.code;
+
+          return (
+            <article
               key={offer.code}
-              className={`rounded-2xl p-6 shadow-lg ${themeClasses[offer.theme]} flex flex-col justify-between min-h-[20rem]`}
+              className="flex min-h-[19rem] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition-shadow hover:shadow-md"
             >
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <span className="bg-black/15 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full">
-                    {offer.badge}
+              <div className={`h-1.5 ${isExpired ? "bg-border" : "bg-primary"}`} />
+              <div className="flex flex-1 flex-col p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="rounded-md border border-border bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-muted">
+                    {isExpired ? "Expired" : offer.badge}
                   </span>
-                  <Tag size={18} className="opacity-80" />
+                  <Tag size={18} className="text-primary" aria-hidden="true" />
                 </div>
-                <div className="text-3xl font-black">{offer.discount}</div>
-                <h3 className="text-lg font-bold mt-1">{offer.title}</h3>
-                <p className={`text-xs mt-2 leading-relaxed ${mutedText[offer.theme]}`}>{offer.desc}</p>
-              </div>
 
-              <div>
-                <div className="bg-black/20 rounded-xl p-3 flex items-center justify-between mb-4 border border-white/10">
-                  <div>
-                    <span className="text-[9px] uppercase tracking-wider opacity-70 block">Coupon Code</span>
-                    <span className={`font-mono font-bold text-sm ${offer.theme === "gold" ? "text-primary-dark" : "text-secondary"}`}>
-                      {offer.code}
-                    </span>
+                <p className={`mt-5 text-2xl font-bold tracking-tight ${isExpired ? "text-muted" : "text-primary-dark dark:text-primary"}`}>
+                  {offer.discount}
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-foreground">
+                  {offer.title}
+                </h2>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
+                  {offer.desc}
+                </p>
+
+                <div className="mt-5 rounded-xl border border-border bg-background p-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted">
+                        Promo code
+                      </p>
+                      <p className="mt-1 truncate font-mono text-sm font-bold tracking-wider text-foreground">
+                        {offer.code}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isExpired}
+                      onClick={() => handleCopy(offer.code, offer.validUntil)}
+                      aria-label={isCopied ? `Copied ${offer.code}` : `Copy ${offer.code}`}
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-foreground transition hover:bg-surface-muted focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      {isCopied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleCopy(offer.code)}
-                    className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition cursor-pointer"
-                    title="Copy Code"
-                  >
-                    {copiedCode === offer.code ? <Check size={16} /> : <Copy size={16} />}
-                  </button>
+                  <p className="mt-2 text-xs text-muted">
+                    {isExpired ? "This offer is no longer valid." : `Valid until ${offer.validTill}`}
+                  </p>
                 </div>
 
-                <div className={`flex items-center justify-between text-xs ${mutedText[offer.theme]}`}>
-                  <span>Valid until {offer.validTill}</span>
+                {!isExpired && (
                   <button
+                    type="button"
                     onClick={() => navigate("/search")}
-                    className="font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                    className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-primary/30 px-4 text-sm font-semibold text-primary-dark transition-colors hover:bg-primary-soft focus-visible:outline-offset-2 dark:text-primary"
                   >
-                    Apply now <ArrowRight size={12} />
+                    Browse flights <ArrowRight size={15} aria-hidden="true" />
                   </button>
-                </div>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
+            </article>
+          );
+        })}
       </div>
-    </div>
+
+      <p className="sr-only" role="status" aria-live="polite">
+        {copiedCode ? `${copiedCode} copied to clipboard.` : copyUnavailable ? "Clipboard access is unavailable." : ""}
+      </p>
+    </main>
   );
 };
 

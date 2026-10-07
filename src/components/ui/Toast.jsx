@@ -38,7 +38,6 @@ const ToastProvider = ({ children }) => {
     const isWarning = toast.type === "warning";
     return <div
       key={toast.id}
-      role="alert"
       role={isError ? "alert" : "status"}
       className={`pointer-events-auto flex translate-y-0 items-start gap-3 rounded-xl border bg-surface p-4 text-foreground opacity-100 shadow-lg shadow-black/10 backdrop-blur-md transition-all duration-300 ${isSuccess ? "border-success/25" : isError ? "border-danger/25" : isWarning ? "border-warning/25" : "border-border"}`}
     >

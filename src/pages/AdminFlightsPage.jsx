@@ -16,6 +16,7 @@ import FlightForm from "../features/admin/flights/FlightForm";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { useToast } from "../components/ui/Toast";
 import { exportToCsv } from "../utils/exportCsv";
+import { formatNaira } from "../utils/formatNaira";
 import EmptyState from "../components/ui/EmptyState";
 const AdminFlightsPage = () => {
   const toast = useToast();
@@ -170,8 +171,8 @@ const AdminFlightsPage = () => {
       { key: "arrivalTime", label: "Arrival" },
       { key: "aircraft", label: "Aircraft" },
       { key: "status", label: "Status" },
-      { key: "priceEconomy", label: "Economy ($)" },
-      { key: "priceBusiness", label: "Business ($)" },
+{ key: "priceEconomy", label: "Economy (NGN)" },
+    { key: "priceBusiness", label: "Business (NGN)" },
       { key: "availableSeatsEconomy", label: "Seats Left" }
     ]);
     toast.success("Flight manifest exported to CSV");
@@ -199,7 +200,7 @@ const AdminFlightsPage = () => {
     else updated.add(id);
     setSelectedIds(updated);
   };
-  return <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
+  return <div className="admin-data-page p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
       {
     /* Top Header */
   }
@@ -382,10 +383,10 @@ const AdminFlightsPage = () => {
                     </td>
                     <td className="py-3.5 px-4 font-mono">
                       <div>
-                        Econ: <span className="font-bold text-foreground">${f.priceEconomy}</span>
+                        Econ: <span className="font-bold text-foreground">{formatNaira(f.priceEconomy || 0)}</span>
                       </div>
                       <div className="text-muted">
-                        Biz: <span className="font-bold text-foreground">${f.priceBusiness}</span>
+                        Biz: <span className="font-bold text-foreground">{formatNaira(f.priceBusiness || 0)}</span>
                       </div>
                     </td>
                     <td className="py-3.5 px-4 font-mono">
