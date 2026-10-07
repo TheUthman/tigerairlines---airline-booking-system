@@ -48,15 +48,29 @@ export const adminService = {
   },
 
   /**
-   * Only promotion to ADMIN is available in the backend.
+   * Update user role (ADMIN, STAFF, PASSENGER).
    * @param {number|string} id
    * @param {string} role
    */
   async updateUserRole(id, role) {
-    if (role !== "ADMIN" && role !== "ADMINISTRATOR") {
-      throw new Error("The backend supports promotion to ADMIN only.");
+    const normalizedRole =
+      role === "ADMINISTRATOR"
+        ? "ADMIN"
+        : role === "USER" || role === "CUSTOMER"
+          ? "PASSENGER"
+          : role;
+
+    try {
+      const res = await apiClient.put(`/auth/users/${id}/role`, {
+        role: normalizedRole,
+      });
+      return extractData(res);
+    } catch {
+      const res = await apiClient.post(`/auth/promote/${id}`, {
+        role: normalizedRole,
+      });
+      return extractData(res);
     }
-    return this.promoteUser(id);
   },
 
   /**
@@ -70,11 +84,12 @@ export const adminService = {
 
   /**
    * POST /api/auth/promote/{userId}
-   * Promote an existing user to ADMIN role.
+   * Promote an existing user to ADMIN or other specified role.
    * @param {number|string} userId
+   * @param {string} [role]
    */
-  async promoteUser(userId) {
-    const res = await apiClient.post(`/auth/promote/${userId}`);
+  async promoteUser(userId, role = "ADMIN") {
+    const res = await apiClient.post(`/auth/promote/${userId}`, { role });
     return extractData(res);
   },
 

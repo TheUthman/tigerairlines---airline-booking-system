@@ -47,15 +47,13 @@ const AdminUsersPage = () => {
   const handlePromoteToAdmin = async (user) => {
     setIsProcessing(true);
     try {
-      // Calls POST /api/auth/promote/{userId} or PUT /api/admin/users/{id}/role
-      await adminService.promoteUser(user.id);
+      await adminService.promoteUser(user.id, "ADMIN");
       toast.success(
-        `User ${user.firstName} ${user.lastName} successfully promoted to ADMINISTRATOR`,
+        `User ${user.firstName} ${user.lastName} successfully promoted to ADMIN`,
         "Role Elevated"
       );
-      // Update local state
       setUsers((prev) =>
-        prev.map((u) => (u.id === user.id ? { ...u, role: "ADMINISTRATOR" } : u))
+        prev.map((u) => (u.id === user.id ? { ...u, role: "ADMIN" } : u))
       );
     } catch (err) {
       toast.error("Failed to promote user to ADMIN");
@@ -67,11 +65,11 @@ const AdminUsersPage = () => {
   const handleRoleChange = async (userId, newRole) => {
     setIsProcessing(true);
     try {
-      // Calls PUT /api/admin/users/{id}/role
       await adminService.updateUserRole(userId, newRole);
-      toast.success(`Role updated to ${newRole}`);
+      const displayRole = newRole === "ADMINISTRATOR" ? "ADMIN" : newRole;
+      toast.success(`Role updated to ${displayRole}`);
       setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+        prev.map((u) => (u.id === userId ? { ...u, role: displayRole } : u))
       );
     } catch (err) {
       toast.error("Failed to update user role");
@@ -104,9 +102,20 @@ const AdminUsersPage = () => {
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
-      `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
+      `${u.firstName || ""} ${u.lastName || ""}`.toLowerCase().includes(search.toLowerCase()) ||
+      (u.email || "").toLowerCase().includes(search.toLowerCase());
+    const isUserAdmin = u.role === "ADMIN" || u.role === "ADMINISTRATOR";
+    const isUserStaff = u.role === "STAFF";
+    const isUserPassenger =
+      u.role === "PASSENGER" || u.role === "USER" || u.role === "CUSTOMER";
+
+    const matchesRole =
+      roleFilter === "ALL" ||
+      (roleFilter === "ADMIN" && isUserAdmin) ||
+      (roleFilter === "STAFF" && isUserStaff) ||
+      (roleFilter === "PASSENGER" && isUserPassenger) ||
+      u.role === roleFilter;
+
     return matchesSearch && matchesRole;
   });
 
@@ -151,18 +160,23 @@ const AdminUsersPage = () => {
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-          {["ALL", "USER", "STAFF", "ADMINISTRATOR"].map((role) => (
+          {[
+            { id: "ALL", label: "All Roles" },
+            { id: "PASSENGER", label: "Passenger" },
+            { id: "STAFF", label: "Staff" },
+            { id: "ADMIN", label: "Admin" },
+          ].map(({ id, label }) => (
             <button
-              key={role}
+              key={id}
               type="button"
-              onClick={() => setRoleFilter(role)}
+              onClick={() => setRoleFilter(id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
-                roleFilter === role
+                roleFilter === id
                   ? "bg-primary text-white shadow-xs"
                   : "bg-surface-muted text-muted hover:bg-surface-muted"
               }`}
             >
-              {role === "ALL" ? "All Roles" : role}
+              {label}
             </button>
           ))}
         </div>
@@ -196,8 +210,14 @@ const AdminUsersPage = () => {
               </thead>
               <tbody className="divide-y divide-border font-medium">
                 {filteredUsers.map((u) => {
-                  const isAdmin = u.role === "ADMINISTRATOR";
+                  const isAdmin =
+                    u.role === "ADMINISTRATOR" || u.role === "ADMIN";
                   const isStaff = u.role === "STAFF";
+                  const displayRole = isAdmin
+                    ? "ADMIN"
+                    : u.role === "USER" || u.role === "CUSTOMER"
+                      ? "PASSENGER"
+                      : u.role;
 
                   return (
                     <tr key={u.id} className="hover:bg-surface-muted/80 transition">
@@ -235,7 +255,7 @@ const AdminUsersPage = () => {
                           }`}
                         >
                           <Shield size={10} />
-                          {u.role}
+                          {displayRole}
                         </span>
                       </td>
 
@@ -262,14 +282,14 @@ const AdminUsersPage = () => {
                           )}
 
                           <select
-                            value={u.role}
+                            value={displayRole}
                             onChange={(e) => handleRoleChange(u.id, e.target.value)}
                             disabled={isProcessing}
                             className="bg-surface-muted hover:bg-surface-muted border border-border rounded-lg px-2 py-1 text-[11px] font-semibold text-foreground cursor-pointer focus:outline-none"
                           >
-                            <option value="USER">USER</option>
+                            <option value="PASSENGER">PASSENGER</option>
                             <option value="STAFF">STAFF</option>
-                            <option value="ADMINISTRATOR">ADMIN</option>
+                            <option value="ADMIN">ADMIN</option>
                           </select>
 
                           <button
