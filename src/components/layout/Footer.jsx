@@ -22,30 +22,30 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-surface-muted text-foreground pt-16 pb-12 border-t border-border">
+    <footer className="bg-footer text-footer-foreground border-t border-white/10 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-10">
           <div className="col-span-2 space-y-4">
             <Link to="/" className="inline-flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/90 border border-border shadow-sm flex items-center justify-center">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white shadow-sm">
                 <img
                   src="/logo.svg"
                   alt="TigerAirlines logo"
-                  className="w-9 h-9 object-contain"
+                  className="h-8 w-8 object-contain"
                 />
               </div>
-              <span className="text-2xl font-black text-primary tracking-tight">
+              <span className="text-xl font-bold tracking-tight text-footer-foreground">
                 Tiger
-                <span className="text-secondary font-extrabold">Airlines</span>
+                <span className="font-bold text-primary">Airlines</span>
               </span>
             </Link>
-            <p className="text-xs text-muted max-w-sm leading-relaxed">
+            <p className="max-w-sm text-sm leading-relaxed text-white/65">
               West Africa’s premier aviation network. Book domestic and
               international flights from Lagos, Abuja, and Port Harcourt.
             </p>
 
             <div className="pt-2">
-              <p className="text-xs font-semibold text-foreground mb-2">
+              <p className="mb-2 text-sm font-semibold text-white/90">
                 Subscribe to our newsletter
               </p>
               <form
@@ -57,18 +57,18 @@ const Footer = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email address"
-                  className="w-full bg-surface border border-border rounded-full pl-4 pr-24 py-2 text-xs text-foreground placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-full border border-white/20 bg-white/10 py-2.5 pl-4 pr-24 text-sm text-white placeholder:text-white/45 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                   required
                 />
                 <button
                   type="submit"
-                  className="absolute right-1 top-1 bottom-1 bg-primary hover:bg-primary-hover text-on-primary px-4 rounded-full text-xs font-semibold transition cursor-pointer shadow-xs"
+                  className="absolute bottom-1 right-1 top-1 rounded-full bg-primary px-4 text-xs font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover cursor-pointer"
                 >
                   Subscribe
                 </button>
               </form>
               {subscribed && (
-                <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 mt-2 font-medium">
+                <p aria-live="polite" className="mt-2 flex items-center gap-1.5 text-xs font-medium text-emerald-300">
                   <CheckCircle2 size={14} /> Thank you for subscribing to
                   TigerAirlines!
                 </p>
@@ -88,7 +88,7 @@ const Footer = () => {
                     key={social.label}
                     href={social.href}
                     aria-label={social.label}
-                    className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-foreground hover:text-primary hover:border-primary transition"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white/75 transition-colors hover:border-primary hover:text-primary"
                   >
                     <Icon size={14} />
                   </a>
@@ -98,30 +98,30 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-primary mb-4">Travel</h4>
-            <ul className="space-y-2.5 text-xs text-muted">
+            <h4 className="mb-4 text-sm font-semibold text-primary">Travel</h4>
+            <ul className="space-y-2.5 text-sm text-white/65">
               <li>
-                <Link to="/" className="hover:text-primary transition">
+                <Link to="/" className="transition-colors hover:text-primary">
                   Book a flight
                 </Link>
               </li>
               <li>
                 <Link
                   to="/destinations"
-                  className="hover:text-primary transition"
+                  className="transition-colors hover:text-primary"
                 >
                   Destinations
                 </Link>
               </li>
               <li>
-                <Link to="/offers" className="hover:text-primary transition">
+                <Link to="/offers" className="transition-colors hover:text-primary">
                   Offers & deals
                 </Link>
               </li>
               <li>
                 <Link
                   to="/flight-status"
-                  className="hover:text-primary transition"
+                  className="transition-colors hover:text-primary"
                 >
                   Flight status
                 </Link>
@@ -130,30 +130,30 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-primary mb-4">Your trip</h4>
-            <ul className="space-y-2.5 text-xs text-muted">
+            <h4 className="mb-4 text-sm font-semibold text-primary">Your trip</h4>
+            <ul className="space-y-2.5 text-sm text-white/65">
               <li>
-                <Link to="/check-in" className="hover:text-primary transition">
+                <Link to="/check-in" className="transition-colors hover:text-primary">
                   Online check-in
                 </Link>
               </li>
               <li>
                 <Link
                   to="/manage-booking"
-                  className="hover:text-primary transition"
+                  className="transition-colors hover:text-primary"
                 >
                   Manage booking
                 </Link>
               </li>
               <li>
-                <Link to="/my-trips" className="hover:text-primary transition">
+                <Link to="/my-trips" className="transition-colors hover:text-primary">
                   My trips
                 </Link>
               </li>
               <li>
                 <Link
                   to="/baggage-policy"
-                  className="hover:text-primary transition"
+                  className="transition-colors hover:text-primary"
                 >
                   Baggage policy
                 </Link>
@@ -162,25 +162,25 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-primary mb-4">Support</h4>
-            <ul className="space-y-2.5 text-xs text-muted">
+            <h4 className="mb-4 text-sm font-semibold text-primary">Support</h4>
+            <ul className="space-y-2.5 text-sm text-white/65">
               <li>
-                <Link to="/contact" className="hover:text-primary transition">
+                <Link to="/contact" className="transition-colors hover:text-primary">
                   Contact us
                 </Link>
               </li>
               <li>
-                <Link to="/faq" className="hover:text-primary transition">
+                <Link to="/faq" className="transition-colors hover:text-primary">
                   Help centre
                 </Link>
               </li>
               <li>
-                <Link to="/legal" className="hover:text-primary transition">
+                <Link to="/legal" className="transition-colors hover:text-primary">
                   Legal & conditions
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="hover:text-primary transition">
+                <Link to="/privacy" className="transition-colors hover:text-primary">
                   Privacy policy
                 </Link>
               </li>
@@ -188,7 +188,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-muted">
+        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row">
           <p>
             © {new Date().getFullYear()} TigerAirlines Nigeria. All rights
             reserved.

@@ -46,7 +46,7 @@ const ConfirmModal = ({
     role="dialog"
     aria-modal="true"
     aria-labelledby="confirm-modal-title"
-    className="relative bg-surface rounded-3xl shadow-2xl border border-border max-w-md w-full p-6 md:p-8 z-10 animate-in fade-in zoom-in-95 duration-200"
+    className="relative z-10 w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 md:p-7"
   >
         <button
     onClick={onClose}
@@ -58,13 +58,13 @@ const ConfirmModal = ({
 
         <div className="flex items-start gap-4">
           <div
-    className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${variant === "danger" ? "bg-primary/10 text-red-600 border border-primary/25" : variant === "warning" ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-surface-muted text-foreground"}`}
+    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${variant === "danger" ? "border border-danger/20 bg-danger/10 text-danger" : variant === "warning" ? "border border-warning/20 bg-warning/10 text-warning" : "bg-surface-muted text-foreground"}`}
   >
             <AlertTriangle size={22} />
           </div>
 
           <div>
-            <h3 id="confirm-modal-title" className="text-base font-black text-foreground">
+            <h3 id="confirm-modal-title" className="text-base font-semibold text-foreground">
               {title}
             </h3>
             <p className="text-xs text-muted mt-1 leading-relaxed">

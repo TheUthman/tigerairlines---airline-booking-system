@@ -71,6 +71,7 @@ const SeatMapStep = () => {
   ];
   useGSAP(
     () => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       gsap.from(".seat-item-btn", {
         scale: 0.7,
         opacity: 0,
@@ -96,18 +97,20 @@ const SeatMapStep = () => {
     }
     if (occupiedSeats.has(seatCode)) return;
     setCurrentSeat(seatCode);
-    gsap.fromTo(
-      e.currentTarget,
-      { scale: 0.92 },
-      { scale: 1.08, duration: 0.18, yoyo: true, repeat: 1, ease: "power2.out" }
-    );
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      gsap.fromTo(
+        e.currentTarget,
+        { scale: 0.96 },
+        { scale: 1, duration: 0.16, ease: "power2.out" },
+      );
+    }
   };
   const handleConfirm = () => {
     dispatch(setSelectedSeats([currentSeat]));
     toast.info(`Seat ${currentSeat} reserved for ${passengers[0]?.firstName || "passenger"}. Proceeding to trip extras.`);
     dispatch(setBookingStep(3));
   };
-  return <div className="bg-surface rounded-3xl p-6 md:p-8 shadow-sm border border-border">
+  return <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-7">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-border">
         <div>
           <h2 className="text-xl font-black text-foreground">Select Your Seat</h2>
@@ -138,7 +141,7 @@ const SeatMapStep = () => {
     /* Assigned Seat Indicator */
   }
           <div className="bg-primary/10 border border-primary/25 rounded-2xl px-4 py-2 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-sm shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold text-sm shadow-xs">
               {currentSeat}
             </div>
             <div>
@@ -158,7 +161,7 @@ const SeatMapStep = () => {
           <span>Available</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-primary text-white flex items-center justify-center font-bold text-[10px] shadow-xs">
+          <div className="w-5 h-5 rounded-md bg-primary text-on-primary flex items-center justify-center font-bold text-[10px] shadow-xs">
             ✓
           </div>
           <span>Selected</span>
@@ -217,9 +220,11 @@ const SeatMapStep = () => {
     return <button
       key={seatCode}
       disabled={isOccupied}
+      type="button"
       aria-label={`Seat ${seatCode}, ${seatFeature}, ${isOccupied ? "Occupied" : isSelected ? "Selected" : "Available"}`}
+      aria-pressed={isSelected}
       onClick={(e) => handleSeatClick(seatCode, e)}
-      className={`seat-item-btn w-8 h-8 rounded-lg text-xs font-bold transition-all duration-150 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isSelected ? "bg-primary text-white shadow-md scale-105 ring-2 ring-primary/40" : isOccupied ? "bg-surface-muted text-muted border border-border" : isExtraLegroom ? "bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300" : "bg-surface hover:bg-primary/10 text-foreground border border-border shadow-2xs hover:border-primary"}`}
+      className={`seat-item-btn h-10 w-10 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isSelected ? "bg-primary text-on-primary shadow-sm ring-2 ring-primary/30" : isOccupied ? "bg-surface-muted text-muted border border-border" : isExtraLegroom ? "bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300" : "bg-surface hover:bg-primary/10 text-foreground border border-border shadow-2xs hover:border-primary"}`}
       title={`Seat ${seatCode} (${seatFeature}) ${isOccupied ? "- Occupied" : ""}`}
     >
                       {isSelected ? <Check size={14} /> : isOccupied ? "\u2715" : letter}
