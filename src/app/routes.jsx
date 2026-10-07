@@ -1,36 +1,56 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import CustomerLayout from "../components/layout/CustomerLayout";
 import AdminLayout from "../components/layout/AdminLayout";
-import Landing from "../pages/Landing";
-import SearchResultsPage from "../pages/SearchResultsPage";
-import BookingPage from "../pages/BookingPage";
-import PaymentPage from "../pages/PaymentPage";
-import ConfirmationPage from "../pages/ConfirmationPage";
-import ManageBookingPage from "../pages/ManageBookingPage";
-import FlightStatusPage from "../pages/FlightStatusPage";
-import CheckInPage from "../pages/CheckInPage";
-import MyTripsPage from "../pages/MyTripsPage";
-import FAQPage from "../pages/FAQPage";
-import ContactPage from "../pages/ContactPage";
-import LegalPage from "../pages/LegalPage";
-import NotFoundPage from "../pages/NotFoundPage";
-import DestinationsPage from "../pages/DestinationsPage";
-import OffersPage from "../pages/OffersPage";
-import LoginPage from "../pages/LoginPage";
-import RegisterPage from "../pages/RegisterPage";
-import VerifyEmailPage from "../pages/VerifyEmailPage";
-import ForgotPasswordPage from "../pages/ForgotPasswordPage";
-import StyleGuidePage from "../pages/StyleGuidePage";
-import AdminLoginPage from "../pages/AdminLoginPage";
-import AdminDashboardPage from "../pages/AdminDashboardPage";
-import AdminFlightsPage from "../pages/AdminFlightsPage";
-import AdminAircraftPage from "../pages/AdminAircraftPage";
-import AdminAirportsPage from "../pages/AdminAirportsPage";
-import AdminPassengersPage from "../pages/AdminPassengersPage";
-import AdminBookingsPage from "../pages/AdminBookingsPage";
-import AdminUsersPage from "../pages/AdminUsersPage";
 import RequireAdminAuth from "../features/auth/RequireAdminAuth";
 import RequireAuth from "../features/auth/RequireAuth";
+
+const RouteLoading = () => (
+  <div className="grid min-h-[40vh] place-items-center" role="status" aria-label="Loading page">
+    <span aria-hidden="true" className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  </div>
+);
+
+const routePage = (loader) => {
+  const LazyPage = lazy(loader);
+
+  return function SuspendedRoutePage(props) {
+    return (
+      <Suspense fallback={<RouteLoading />}>
+        <LazyPage {...props} />
+      </Suspense>
+    );
+  };
+};
+
+const Landing = routePage(() => import("../pages/Landing"));
+const SearchResultsPage = routePage(() => import("../pages/SearchResultsPage"));
+const BookingPage = routePage(() => import("../pages/BookingPage"));
+const PaymentPage = routePage(() => import("../pages/PaymentPage"));
+const ConfirmationPage = routePage(() => import("../pages/ConfirmationPage"));
+const ManageBookingPage = routePage(() => import("../pages/ManageBookingPage"));
+const FlightStatusPage = routePage(() => import("../pages/FlightStatusPage"));
+const CheckInPage = routePage(() => import("../pages/CheckInPage"));
+const MyTripsPage = routePage(() => import("../pages/MyTripsPage"));
+const FAQPage = routePage(() => import("../pages/FAQPage"));
+const ContactPage = routePage(() => import("../pages/ContactPage"));
+const LegalPage = routePage(() => import("../pages/LegalPage"));
+const NotFoundPage = routePage(() => import("../pages/NotFoundPage"));
+const DestinationsPage = routePage(() => import("../pages/DestinationsPage"));
+const OffersPage = routePage(() => import("../pages/OffersPage"));
+const LoginPage = routePage(() => import("../pages/LoginPage"));
+const RegisterPage = routePage(() => import("../pages/RegisterPage"));
+const VerifyEmailPage = routePage(() => import("../pages/VerifyEmailPage"));
+const ForgotPasswordPage = routePage(() => import("../pages/ForgotPasswordPage"));
+const StyleGuidePage = routePage(() => import("../pages/StyleGuidePage"));
+const AdminLoginPage = routePage(() => import("../pages/AdminLoginPage"));
+const AdminDashboardPage = routePage(() => import("../pages/AdminDashboardPage"));
+const AdminFlightsPage = routePage(() => import("../pages/AdminFlightsPage"));
+const AdminAircraftPage = routePage(() => import("../pages/AdminAircraftPage"));
+const AdminAirportsPage = routePage(() => import("../pages/AdminAirportsPage"));
+const AdminPassengersPage = routePage(() => import("../pages/AdminPassengersPage"));
+const AdminBookingsPage = routePage(() => import("../pages/AdminBookingsPage"));
+const AdminUsersPage = routePage(() => import("../pages/AdminUsersPage"));
 const AppRoutes = () => {
   return <Routes>
       {
