@@ -64,7 +64,7 @@ class AuthService {
   /**
    * POST /api/auth/register
    * Register a new user and issue JWT + refresh token.
-   * @param {{ firstName: string, lastName: string, email: string, password: string, phone?: string }} payload
+   * @param {{ firstName: string, lastName: string, email: string, password: string }} payload
    */
   async register(payload) {
     const fullName = payload.fullName?.trim() || "";
@@ -73,8 +73,6 @@ class AuthService {
       firstName: payload.firstName || firstName || "",
       lastName: payload.lastName || lastNameParts.join(" ") || firstName || "",
       email: payload.email,
-      phone: payload.phone,
-      phoneNumber: payload.phone,
       password: payload.password
     });
     const result = this.normalizeAuthResponse(res);

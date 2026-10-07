@@ -10,14 +10,48 @@ const apiClient = axios.create({
   timeout: 15000,
 });
 
+// Keep browser-console diagnostics useful during local development without
+// exposing request bodies, which can contain passwords and access tokens.
+const logDevelopmentApiError = (error) => {
+  if (!import.meta.env.DEV) return;
+
+  const request = error?.config;
+  console.error("API request failed", {
+    method: request?.method?.toUpperCase(),
+    url: request?.baseURL
+      ? `${request.baseURL}${request.url || ""}`
+      : request?.url,
+    status: error?.response?.status,
+    statusText: error?.response?.statusText,
+    response: error?.response?.data,
+    code: error?.code,
+    message: error?.message,
+  });
+};
+
+// Public auth routes that must never carry an Authorization header – the
+// server will reject the request if it sees an expired / invalid JWT.
+const PUBLIC_AUTH_PATHS = [
+  "/auth/register",
+  "/auth/login",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/verification",
+];
+
+const isPublicAuthRoute = (url) =>
+  PUBLIC_AUTH_PATHS.some((p) => url?.includes(p));
+
 // The gateway derives caller identity from the JWT and injects service headers.
 apiClient.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem("tiger_auth_token") ||
-    localStorage.getItem("tiger_token") ||
-    sessionStorage.getItem("tiger_token");
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (!isPublicAuthRoute(config.url)) {
+    const token =
+      localStorage.getItem("tiger_auth_token") ||
+      localStorage.getItem("tiger_token") ||
+      sessionStorage.getItem("tiger_token");
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
 
   return config;
@@ -41,12 +75,14 @@ const processQueue = (error, token = null) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    logDevelopmentApiError(error);
     const originalRequest = error.config;
     if (
       error.response &&
       error.response.status === 401 &&
       !originalRequest._retry &&
       !originalRequest.url?.includes("/auth/login") &&
+      !originalRequest.url?.includes("/auth/register") &&
       !originalRequest.url?.includes("/auth/refresh")
     ) {
       const refreshToken =
@@ -171,7 +207,7 @@ export const getApiErrorMessage = (
   }
 
   if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
-    return "Unable to connect to the backend server. Please ensure the backend service is running and try again.";
+    return "We can’t reach the service right now. Please check your internet connection and try again in a moment.";
   }
 
   return error.message || fallback;

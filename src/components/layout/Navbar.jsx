@@ -113,8 +113,8 @@ const Navbar = ({ onOpenAlertsModal }) => {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between gap-3 h-16">
           <Link to="/" className="flex items-center gap-2 group shrink-0">
-            <div style={{ backgroundColor: "white" }} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xs flex items-center justify-center border border-white/20 shadow-sm group-hover:scale-105 transition-transform duration-200">
-              <div className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center overflow-hidden ring-1 ring-white/20">
+            <div style={{ backgroundColor: "white" }} className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xs flex items-center justify-center border border-white/20 shadow-sm group-hover:scale-105 transition-transform duration-200">
+              <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center overflow-hidden ring-1 ring-white/20">
                 <img
                   src="/logo.svg"
                   className="w-full h-full object-contain"
