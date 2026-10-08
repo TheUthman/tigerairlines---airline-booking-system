@@ -33,7 +33,16 @@ const registerSchema = yup.object({
     .string()
     .trim()
     .required("Please enter your full legal name")
-    .min(3, "Full name must be at least 3 characters long"),
+    .min(3, "Full name must be at least 3 characters long")
+    .test(
+      "has-last-name",
+      "Please enter both your first and last name (e.g. Jane Doe)",
+      (value) => {
+        if (!value) return false;
+        const parts = value.trim().split(/\s+/);
+        return parts.length >= 2 && parts[1].length > 0;
+      }
+    ),
   email: yup
     .string()
     .trim()

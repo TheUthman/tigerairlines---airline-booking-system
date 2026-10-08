@@ -21,6 +21,7 @@ import Badge from "../components/ui/Badge";
 import Input from "../components/ui/Input";
 import { useToast } from "../components/ui/Toast";
 import EmptyState from "../components/ui/EmptyState";
+import ConfirmModal from "../components/ui/ConfirmModal";
 import { useAppSelector } from "../app/store";
 
 const AdminUsersPage = () => {
@@ -34,6 +35,7 @@ const AdminUsersPage = () => {
   const [openRoleMenuFor, setOpenRoleMenuFor] = useState(null);
   const [roleMenuPosition, setRoleMenuPosition] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const loadUsers = async () => {
@@ -127,7 +129,7 @@ const AdminUsersPage = () => {
     handleRoleChange(user.id, newRole);
   };
 
-  const handleDeleteUser = async (user) => {
+  const handleDeleteClick = (user) => {
     const isSelf =
       currentUser &&
       (String(currentUser.id) === String(user.id) ||
@@ -138,19 +140,18 @@ const AdminUsersPage = () => {
       return;
     }
 
-    if (
-      !window.confirm(
-        `Are you sure you want to delete user account ${user.firstName} ${user.lastName} (${user.email})?`
-      )
-    ) {
-      return;
-    }
+    setUserToDelete(user);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
 
     setIsProcessing(true);
     try {
-      await adminService.deleteUser(user.id);
-      toast.success(`Deleted user account ${user.email}`);
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      await adminService.deleteUser(userToDelete.id);
+      toast.success(`Deleted user account ${userToDelete.email}`);
+      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
+      setUserToDelete(null);
     } catch (err) {
       const serverMsg =
         err?.response?.data?.message ||
@@ -483,7 +484,7 @@ const AdminUsersPage = () => {
                             return (
                               <button
                                 type="button"
-                                onClick={() => handleDeleteUser(u)}
+                                onClick={() => handleDeleteClick(u)}
                                 disabled={isProcessing || isSelf}
                                 className={`p-1.5 rounded-lg transition ${
                                   isSelf
@@ -510,6 +511,23 @@ const AdminUsersPage = () => {
           </div>
         )}
       </div>
+
+      {/* Delete User Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(userToDelete)}
+        onClose={() => !isProcessing && setUserToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete User Account?"
+        description={
+          userToDelete
+            ? `Are you sure you want to permanently delete the user account for ${userToDelete.firstName} ${userToDelete.lastName} (${userToDelete.email})? This action will revoke all session tokens and remove their account.`
+            : ""
+        }
+        confirmText="Delete Account"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isProcessing}
+      />
     </div>
   );
 };

@@ -20,6 +20,7 @@ const logDevelopmentApiError = (error) => {
   if (!import.meta.env.DEV) return;
 
   const request = error?.config;
+  const responseData = error?.response?.data;
   console.error("API request failed", {
     method: request?.method?.toUpperCase(),
     url: request?.baseURL
@@ -27,7 +28,11 @@ const logDevelopmentApiError = (error) => {
       : request?.url,
     status: error?.response?.status,
     statusText: error?.response?.statusText,
-    response: error?.response?.data,
+    response: responseData,
+    serverMessage:
+      typeof responseData === "object"
+        ? responseData?.message || responseData?.error
+        : responseData,
     code: error?.code,
     message: error?.message,
   });
@@ -176,24 +181,40 @@ export const getApiErrorMessage = (
     const data = error.response?.data;
     if (typeof data === "string" && data.trim()) return data;
 
-    const serverMessage =
-      data?.message ||
-      data?.error ||
-      data?.detail ||
-      (Array.isArray(data?.errors)
-        ? data.errors
-            .map((e) => e.msg || e.message || e)
-            .filter(Boolean)
+    const fieldErrors = Array.isArray(data?.errors)
+      ? data.errors
+          .map((e) => {
+            if (typeof e === "string") return e;
+            if (e?.field && e?.defaultMessage) return `${e.field}: ${e.defaultMessage}`;
+            return e?.defaultMessage || e?.msg || e?.message || null;
+          })
+          .filter(Boolean)
+          .join(", ")
+      : data?.errors && typeof data.errors === "object"
+        ? Object.entries(data.errors)
+            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
             .join(", ")
-        : null) ||
-      (data?.errors && typeof data.errors === "object"
-        ? Object.values(data.errors).flat().filter(Boolean).join(", ")
-        : null);
+        : null;
 
-    if (serverMessage) return serverMessage;
+    const rawMessage = data?.message || data?.detail;
+    const isGenericErrorPhrase =
+      typeof data?.error === "string" &&
+      ["bad request", "internal server error", "unauthorized", "forbidden", "not found"].includes(
+        data.error.trim().toLowerCase(),
+      );
+    const specificError = !isGenericErrorPhrase ? data?.error : null;
+
+    const serverMessage = rawMessage || fieldErrors || specificError;
+
+    if (serverMessage) {
+      if (typeof serverMessage === "string" && serverMessage.toLowerCase().includes("already exists")) {
+        return "An account with this email address already exists. Please log in.";
+      }
+      return serverMessage;
+    }
 
     if (error.response.status === 400) {
-      return "Invalid request. Please verify your submission details.";
+      return "Invalid request. Please check the information provided and try again.";
     }
     if (error.response.status === 401) {
       return "Your session has expired or credentials are invalid.";

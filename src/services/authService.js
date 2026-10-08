@@ -64,16 +64,27 @@ class AuthService {
   /**
    * POST /api/auth/register
    * Register a new user and issue JWT + refresh token.
-   * @param {{ firstName: string, lastName: string, email: string, password: string }} payload
+   * @param {{ fullName?: string, firstName?: string, lastName?: string, email: string, password: string }} payload
    */
   async register(payload) {
-    const fullName = payload.fullName?.trim() || "";
-    const [firstName, ...lastNameParts] = fullName.split(/\s+/);
+    // Prefer explicit firstName/lastName; fall back to splitting fullName.
+    let derivedFirst = "";
+    let derivedLast = "";
+    if (payload.fullName?.trim()) {
+      const parts = payload.fullName.trim().split(/\s+/);
+      derivedFirst = parts[0] || "";
+      // If the user typed only one word, use it as both first AND last name so
+      // the backend @NotBlank constraint on lastName is never violated.
+      derivedLast = parts.length > 1 ? parts.slice(1).join(" ") : parts[0];
+    }
+    const firstName = (payload.firstName?.trim() || derivedFirst).trim();
+    const lastName = (payload.lastName?.trim() || derivedLast).trim();
+
     const res = await apiClient.post("/auth/register", {
-      firstName: payload.firstName || firstName || "",
-      lastName: payload.lastName || lastNameParts.join(" ") || firstName || "",
+      firstName,
+      lastName,
       email: payload.email,
-      password: payload.password
+      password: payload.password,
     });
     const result = this.normalizeAuthResponse(res);
 
