@@ -1,17 +1,21 @@
 import axios from "axios";
 
+const resolveApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (typeof envUrl === "string" && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, "");
+  }
+  return "/api";
+};
+
 const apiClient = axios.create({
-  // The gateway exposes routes below /api (not /api/v1). Use its local address
-  // by default so the Vite development server does not need a proxy.
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api",
+  baseURL: resolveApiBaseUrl(),
   headers: {
     "Content-Type": "application/json",
   },
   timeout: 15000,
 });
 
-// Keep browser-console diagnostics useful during local development without
-// exposing request bodies, which can contain passwords and access tokens.
 const logDevelopmentApiError = (error) => {
   if (!import.meta.env.DEV) return;
 
@@ -29,8 +33,6 @@ const logDevelopmentApiError = (error) => {
   });
 };
 
-// Public auth routes that must never carry an Authorization header – the
-// server will reject the request if it sees an expired / invalid JWT.
 const PUBLIC_AUTH_PATHS = [
   "/auth/register",
   "/auth/login",
@@ -42,8 +44,10 @@ const PUBLIC_AUTH_PATHS = [
 const isPublicAuthRoute = (url) =>
   PUBLIC_AUTH_PATHS.some((p) => url?.includes(p));
 
-// The gateway derives caller identity from the JWT and injects service headers.
 apiClient.interceptors.request.use((config) => {
+  if (config.baseURL?.endsWith("/api") && config.url?.startsWith("/api/")) {
+    config.url = config.url.replace(/^\/api/, "");
+  }
   if (!isPublicAuthRoute(config.url)) {
     const token =
       localStorage.getItem("tiger_auth_token") ||
@@ -57,7 +61,6 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle token refresh on 401 Unauthorized
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -105,8 +108,9 @@ apiClient.interceptors.response.use(
         isRefreshing = true;
 
         try {
+          const baseURL = apiClient.defaults.baseURL || "";
           const refreshRes = await axios.post(
-            `${apiClient.defaults.baseURL}/auth/refresh`,
+            `${baseURL}/auth/refresh`,
             { refreshToken },
             { headers: { "Content-Type": "application/json" } },
           );
@@ -133,19 +137,26 @@ apiClient.interceptors.response.use(
         } finally {
           isRefreshing = false;
         }
+      } else {
+        localStorage.removeItem("tiger_auth_token");
+        localStorage.removeItem("tiger_token");
+        localStorage.removeItem("tiger_auth_user");
       }
     }
     return Promise.reject(error);
   },
 );
 
-/**
- * Standardizes API responses so both raw responses and wrapped { data, success } formats
- * work seamlessly with frontend components expecting res.data.
- */
 export const extractData = (res, fallback = null) => {
   if (!res) return { success: false, data: fallback };
   const payload = res.data;
+  if (
+    typeof payload === "string" &&
+    (payload.trim().startsWith("<!DOCTYPE") ||
+      payload.trim().startsWith("<html"))
+  ) {
+    return { success: false, data: fallback };
+  }
   if (payload && typeof payload === "object" && "data" in payload) {
     return payload;
   }
@@ -170,7 +181,10 @@ export const getApiErrorMessage = (
       data?.error ||
       data?.detail ||
       (Array.isArray(data?.errors)
-        ? data.errors.map((e) => e.msg || e.message || e).filter(Boolean).join(", ")
+        ? data.errors
+            .map((e) => e.msg || e.message || e)
+            .filter(Boolean)
+            .join(", ")
         : null) ||
       (data?.errors && typeof data.errors === "object"
         ? Object.values(data.errors).flat().filter(Boolean).join(", ")
@@ -201,7 +215,8 @@ export const getApiErrorMessage = (
   if (
     error.code === "ECONNABORTED" ||
     error.code === "ETIMEDOUT" ||
-    (typeof error.message === "string" && error.message.toLowerCase().includes("timeout"))
+    (typeof error.message === "string" &&
+      error.message.toLowerCase().includes("timeout"))
   ) {
     return "Request timed out. The server is taking too long to respond.";
   }

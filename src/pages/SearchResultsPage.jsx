@@ -80,6 +80,7 @@ const SearchResultsPage = () => {
           flightService.searchFlights({
             originCode: originParam,
             destinationCode: destParam,
+            date: departDateParam,
           }),
         ]);
 

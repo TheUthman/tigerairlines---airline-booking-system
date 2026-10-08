@@ -88,7 +88,11 @@ const AdminPassengersPage = () => {
     toast.success("Passenger registry exported to CSV");
   };
   const filtered = passengers.filter(
-    (p) => p.firstName.toLowerCase().includes(search.toLowerCase()) || p.lastName.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase()) || p.passportNumber.toLowerCase().includes(search.toLowerCase()) || p.nationality.toLowerCase().includes(search.toLowerCase())
+    (p) =>
+      [p.firstName, p.lastName, p.email, p.passportNumber, p.nationality]
+        .some((value) =>
+          String(value || "").toLowerCase().includes(search.toLowerCase())
+        )
   );
   const toggleSelectAll = () => {
     if (selectedIds.size === filtered.length) {

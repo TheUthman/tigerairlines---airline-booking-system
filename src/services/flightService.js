@@ -24,13 +24,13 @@ export const flightService = {
     const origin = params.origin || params.originCode || "";
     const destination = params.destination || params.destinationCode || "";
     const queryParams = {
-      ...params,
       origin,
       destination,
-      originCode: origin,
-      destinationCode: destination,
       date: params.date,
-      passengers: params.passengers || 1
+      passengers: params.passengers ?? 1,
+      airline: params.airline,
+      maxPrice: params.maxPrice,
+      maxDurationMinutes: params.maxDurationMinutes
     };
 
     const res = await apiClient.get("/flights/search", { params: queryParams });
@@ -92,24 +92,13 @@ export const flightService = {
 
   /**
    * POST /api/flights/admin/{id}/cancel
-   * Admin - cancel a flight.
+   * Admin - cancel a flight and mark it inactive.
    * @param {number|string} id
    */
   async cancelFlight(id) {
     const res = await apiClient.post(`/flights/admin/${id}/cancel`);
     return extractData(res);
   },
-
-  /**
-   * DELETE /api/flights/{id}
-   * Admin - delete a flight.
-   * @param {number|string} id
-   */
-  async deleteFlight(id) {
-    const res = await apiClient.post(`/flights/admin/${id}/cancel`);
-    return extractData(res, { id });
-  },
-
   /**
    * GET /api/flights/admin/airports or /api/airports
    * List airports catalogue.

@@ -159,10 +159,13 @@ class AuthService {
   /**
    * POST /api/auth/reset-password
    * Reset user password using security token and new password.
-   * @param {{ token: string, password: string, email?: string }} payload
+   * @param {{ token: string, password: string }} payload
    */
   async resetPassword(payload) {
-    const res = await apiClient.post("/auth/reset-password", payload);
+    const res = await apiClient.post("/auth/reset-password", {
+      token: payload.token,
+      password: payload.password,
+    });
     return extractData(res);
   }
 

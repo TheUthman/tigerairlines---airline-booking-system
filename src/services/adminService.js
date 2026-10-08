@@ -48,6 +48,7 @@ export const adminService = {
   },
 
   /**
+   * PUT /api/auth/users/{userId}/role
    * Update user role (ADMIN, STAFF, PASSENGER).
    * @param {number|string} id
    * @param {string} role
@@ -60,26 +61,20 @@ export const adminService = {
           ? "PASSENGER"
           : role;
 
-    try {
-      const res = await apiClient.put(`/auth/users/${id}/role`, {
-        role: normalizedRole,
-      });
-      return extractData(res);
-    } catch {
-      const res = await apiClient.post(`/auth/promote/${id}`, {
-        role: normalizedRole,
-      });
-      return extractData(res);
-    }
+    const res = await apiClient.put(`/auth/users/${id}/role`, {
+      role: normalizedRole,
+    });
+    return extractData(res);
   },
 
   /**
-   * DELETE /api/admin/users/{id}
+   * DELETE /api/auth/users/{id}
    * Delete a registered user account.
    * @param {number|string} id
    */
   async deleteUser(id) {
-    throw new Error("The backend does not expose user deletion.");
+    const res = await apiClient.delete(`/auth/users/${id}`);
+    return extractData(res);
   },
 
   /**

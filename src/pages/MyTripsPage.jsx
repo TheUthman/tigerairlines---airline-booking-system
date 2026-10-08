@@ -142,7 +142,8 @@ const MyTripsPage = () => {
     if (
       !newTraveler.firstName ||
       !newTraveler.lastName ||
-      !newTraveler.passportNumber
+      !newTraveler.passportNumber ||
+      !newTraveler.dateOfBirth
     ) {
       toast.warning("Please complete all required passenger details.");
       return;
@@ -159,8 +160,12 @@ const MyTripsPage = () => {
     try {
       // POST /api/passengers
       const createdRes = await passengerService.createPassenger({
-        ...newTraveler,
+        firstName: newTraveler.firstName,
+        lastName: newTraveler.lastName,
+        dateOfBirth: newTraveler.dateOfBirth,
         documentNumber: newTraveler.passportNumber,
+        passportNationality: newTraveler.nationality,
+        savedTraveler: true,
       });
       const created = {
         ...newTraveler,
@@ -744,10 +749,11 @@ const MyTripsPage = () => {
                   </div>
                   <div>
                     <label className="block font-bold text-foreground mb-1">
-                      Date of Birth
+                      Date of Birth *
                     </label>
                     <input
                       type="date"
+                      required
                       value={newTraveler.dateOfBirth}
                       onChange={(e) =>
                         setNewTraveler({

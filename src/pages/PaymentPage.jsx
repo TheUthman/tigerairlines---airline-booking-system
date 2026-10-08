@@ -148,20 +148,16 @@ const PaymentPage = () => {
           "Card declined by issuing bank (insufficient funds or simulated test decline)",
         );
       }
+      const seatNumber = selectedSeats[0];
+      if (!seatNumber) {
+        throw new Error("Select a seat before continuing to payment.");
+      }
 
       // Step 1: Create booking and lock seat for 10 min (Booking Service)
       const bookingPayload = {
         flightId: flight.id,
-        flightNumber: flight.flightNumber,
         passengerId: passenger.id,
-        passengerName: `${passenger.firstName} ${passenger.lastName}`.trim(),
-        origin: `${flight.origin?.city || flight.origin?.code || ""}${flight.origin?.code ? ` (${flight.origin.code})` : ""}`,
-        destination: `${flight.destination?.city || flight.destination?.code || ""}${flight.destination?.code ? ` (${flight.destination.code})` : ""}`,
-        departureDate: flight.departureDate,
-        departureTime: flight.departureTime,
-        cabinClass: cabinClass || "Economy",
-        status: "PENDING_PAYMENT",
-        seatNumber: selectedSeats[0] || null,
+        seatNumber,
         amount: grandTotal,
       };
 

@@ -21,7 +21,18 @@ export const pricingService = {
    */
   async getQuote(payload) {
     const res = await apiClient.post("/pricing/quote", payload);
-    return extractData(res);
+    const result = extractData(res);
+    if (!result.data) return result;
+
+    return {
+      ...result,
+      data: {
+        ...result.data,
+        appliedMultiplier:
+          result.data.appliedMultiplier ?? result.data.multiplier,
+        rulesUsed: result.data.rulesUsed ?? result.data.appliedRules ?? [],
+      },
+    };
   },
 
   /**

@@ -43,16 +43,26 @@ const AdminTopbar = ({
   const notifRef = useRef(null);
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       flightService.getFlights(),
       passengerService.getPassengers(),
       bookingService.getBookings(),
       notificationService.getNotifications()
     ]).then(([fRes, pRes, bRes, nRes]) => {
-      setFlights(fRes.data || []);
-      setPassengers(pRes.data || []);
-      setBookings(bRes.data || []);
-      setNotifications(nRes.data || []);
+      const fData = fRes.status === "fulfilled" ? fRes.value?.data : [];
+      const pData = pRes.status === "fulfilled" ? pRes.value?.data : [];
+      const bData = bRes.status === "fulfilled" ? bRes.value?.data : [];
+      const nData = nRes.status === "fulfilled" ? nRes.value?.data : [];
+
+      setFlights(Array.isArray(fData) ? fData : (Array.isArray(fData?.flights) ? fData.flights : []));
+      setPassengers(Array.isArray(pData) ? pData : (Array.isArray(pData?.passengers) ? pData.passengers : []));
+      setBookings(Array.isArray(bData) ? bData : (Array.isArray(bData?.bookings) ? bData.bookings : []));
+      setNotifications(Array.isArray(nData) ? nData : (Array.isArray(nData?.notifications) ? nData.notifications : []));
+    }).catch(() => {
+      setFlights([]);
+      setPassengers([]);
+      setBookings([]);
+      setNotifications([]);
     });
   }, []);
 
@@ -72,15 +82,20 @@ const AdminTopbar = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
+  const safeFlights = Array.isArray(flights) ? flights : [];
+  const safePassengers = Array.isArray(passengers) ? passengers : [];
+  const safeBookings = Array.isArray(bookings) ? bookings : [];
+
+  const unreadCount = safeNotifications.filter((n) => !n.read).length;
 
   const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => (Array.isArray(prev) ? prev.map((n) => ({ ...n, read: true })) : []));
   };
 
   const q = searchQuery.toLowerCase().trim();
   const matchedFlights = q
-    ? flights
+    ? safeFlights
         .filter(
           (f) =>
             f.flightNumber?.toLowerCase().includes(q) ||
@@ -91,7 +106,7 @@ const AdminTopbar = ({
     : [];
 
   const matchedPassengers = q
-    ? passengers
+    ? safePassengers
         .filter(
           (p) =>
             p.firstName?.toLowerCase().includes(q) ||
@@ -102,7 +117,7 @@ const AdminTopbar = ({
     : [];
 
   const matchedBookings = q
-    ? bookings
+    ? safeBookings
         .filter(
           (b) =>
             b.pnr?.toLowerCase().includes(q) ||
@@ -316,12 +331,12 @@ const AdminTopbar = ({
               </div>
 
               <div className="max-h-72 overflow-y-auto divide-y divide-border">
-                {notifications.length === 0 ? (
+                {safeNotifications.length === 0 ? (
                   <p className="text-center text-muted py-6 text-xs">
                     No active notifications
                   </p>
                 ) : (
-                  notifications.map((n) => (
+                  safeNotifications.map((n) => (
                     <div
                       key={n.id}
                       className={`px-4 py-2.5 hover:bg-surface-muted transition cursor-pointer text-xs ${

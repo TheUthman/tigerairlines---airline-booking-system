@@ -9,8 +9,44 @@ export const notificationService = {
    * Fetch the 50 most recent notifications for the logged-in user identified by X-User-Email.
    */
   async getNotifications() {
-    const res = await apiClient.get("/notifications");
-    return extractData(res, []);
+    try {
+      const res = await apiClient.get("/notifications");
+      const extracted = extractData(res, []);
+      const raw = Array.isArray(extracted?.data)
+        ? extracted.data
+        : Array.isArray(extracted?.data?.notifications)
+        ? extracted.data.notifications
+        : Array.isArray(extracted?.notifications)
+        ? extracted.notifications
+        : Array.isArray(extracted)
+        ? extracted
+        : [];
+
+      const normalized = raw.map((item, idx) => ({
+        id: item.id || `notif-${idx}`,
+        title: item.title || item.eventType?.replace(/_/g, " ") || "Notification",
+        message:
+          item.message ||
+          (typeof item.payload === "string" ? item.payload : item.deliveryStatus || "Update available"),
+        type:
+          item.type ||
+          (item.eventType?.includes("FLIGHT")
+            ? "FLIGHT"
+            : item.eventType?.includes("PAYMENT")
+            ? "PAYMENT"
+            : "INFO"),
+        read: Boolean(item.read),
+        timestamp:
+          item.timestamp ||
+          (item.createdAt
+            ? new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : "")
+      }));
+
+      return { success: true, data: normalized };
+    } catch {
+      return { success: false, data: [] };
+    }
   },
 
   /**

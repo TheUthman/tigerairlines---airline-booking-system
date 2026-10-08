@@ -3,7 +3,7 @@ import {
   Plus,
   Search,
   Edit2,
-  Trash2,
+  Ban,
   ArrowRight,
   Download,
   CheckSquare
@@ -118,8 +118,8 @@ const AdminFlightsPage = () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      await flightService.deleteFlight(deleteTarget.id);
-      toast.info(`Flight ${deleteTarget.flightNumber} removed from flight inventory.`);
+      await flightService.cancelFlight(deleteTarget.id);
+      toast.info(`Flight ${deleteTarget.flightNumber} was cancelled.`);
       setDeleteTarget(null);
       await loadFlights();
     } finally {
@@ -130,9 +130,9 @@ const AdminFlightsPage = () => {
     setIsDeleting(true);
     try {
       for (const id of selectedIds) {
-        await flightService.deleteFlight(id);
+        await flightService.cancelFlight(id);
       }
-      toast.info(`Successfully deleted ${selectedIds.size} flight records.`);
+      toast.info(`Successfully cancelled ${selectedIds.size} flights.`);
       setSelectedIds(/* @__PURE__ */ new Set());
       setShowBulkDeleteModal(false);
       await loadFlights();
@@ -304,7 +304,7 @@ const AdminFlightsPage = () => {
     onClick={() => setShowBulkDeleteModal(true)}
     className="font-bold text-xs"
   >
-              Delete Selected ({selectedIds.size})
+              Cancel Selected ({selectedIds.size})
             </Button>
           </div>
         </div>}
@@ -419,9 +419,9 @@ const AdminFlightsPage = () => {
                         <button
     onClick={() => setDeleteTarget({ id: f.id, flightNumber: f.flightNumber })}
     className="p-1.5 text-muted hover:text-red-600 hover:bg-primary/10 rounded-lg transition cursor-pointer"
-    title="Delete Flight"
+    title="Cancel Flight"
   >
-                          <Trash2 size={14} />
+                          <Ban size={14} />
                         </button>
                       </div>
                     </td>
@@ -481,29 +481,29 @@ const AdminFlightsPage = () => {
       </Modal>
 
       {
-    /* Confirm Single Delete Modal */
+    /* Confirm Single Flight Cancellation Modal */
   }
       <ConfirmModal
     isOpen={!!deleteTarget}
     onClose={() => setDeleteTarget(null)}
     onConfirm={handleConfirmDelete}
-    title={`Delete Flight ${deleteTarget?.flightNumber}?`}
-    description="Are you sure you want to permanently delete this scheduled flight from the TigerAirlines system? This action cannot be undone."
-    confirmText="Delete Flight"
+    title={`Cancel Flight ${deleteTarget?.flightNumber}?`}
+    description="Are you sure you want to cancel this flight? It will be marked inactive and will no longer appear as a scheduled flight."
+    confirmText="Cancel Flight"
     variant="danger"
     isLoading={isDeleting}
   />
 
       {
-    /* Confirm Bulk Delete Modal */
+    /* Confirm Bulk Flight Cancellation Modal */
   }
       <ConfirmModal
     isOpen={showBulkDeleteModal}
     onClose={() => setShowBulkDeleteModal(false)}
     onConfirm={handleConfirmBulkDelete}
-    title={`Delete ${selectedIds.size} Selected Flights?`}
-    description={`This will permanently remove ${selectedIds.size} flight records from the live database. Are you sure you want to proceed?`}
-    confirmText={`Delete ${selectedIds.size} Flights`}
+    title={`Cancel ${selectedIds.size} Selected Flights?`}
+    description={`This will mark ${selectedIds.size} selected flights as cancelled and inactive. Are you sure you want to proceed?`}
+    confirmText={`Cancel ${selectedIds.size} Flights`}
     variant="danger"
     isLoading={isDeleting}
   />

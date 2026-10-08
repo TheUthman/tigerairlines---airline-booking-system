@@ -1,5 +1,30 @@
 import apiClient, { extractData } from "./apiClient";
 
+const normalizePassenger = (passenger) => ({
+  ...passenger,
+  email: passenger.email ?? passenger.ownerEmail ?? "",
+  passportNumber: passenger.passportNumber ?? passenger.documentNumber ?? "",
+  nationality: passenger.nationality ?? passenger.passportNationality ?? "",
+  tier: passenger.tier ?? "Standard",
+});
+
+const normalizePassengerList = (result) =>
+  Array.isArray(result.data)
+    ? { ...result, data: result.data.map(normalizePassenger) }
+    : result;
+
+const toPassengerRequest = (passenger) => ({
+  firstName: passenger.firstName,
+  lastName: passenger.lastName,
+  dateOfBirth: passenger.dateOfBirth,
+  phone: passenger.phone,
+  documentNumber: passenger.documentNumber ?? passenger.passportNumber,
+  passportNationality:
+    passenger.passportNationality ?? passenger.nationality,
+  passportExpiryDate: passenger.passportExpiryDate,
+  savedTraveler: passenger.savedTraveler ?? true,
+});
+
 /**
  * Service handling passenger operations mapped to Passenger Service (`passenger-service`).
  */
@@ -10,7 +35,7 @@ export const passengerService = {
    */
   async getMyPassengers() {
     const res = await apiClient.get("/passengers/me");
-    return extractData(res, []);
+    return normalizePassengerList(extractData(res, []));
   },
 
   /**
@@ -19,7 +44,7 @@ export const passengerService = {
    */
   async getSavedTravelers() {
     const res = await apiClient.get("/passengers/saved-travelers");
-    return extractData(res, []);
+    return normalizePassengerList(extractData(res, []));
   },
 
   /**
@@ -28,7 +53,7 @@ export const passengerService = {
    */
   async getPassengers() {
     const res = await apiClient.get("/passengers");
-    return extractData(res, []);
+    return normalizePassengerList(extractData(res, []));
   },
 
   /**
@@ -38,7 +63,10 @@ export const passengerService = {
    */
   async getPassengerById(id) {
     const res = await apiClient.get(`/passengers/${id}`);
-    return extractData(res, null);
+    const result = extractData(res, null);
+    return result.data
+      ? { ...result, data: normalizePassenger(result.data) }
+      : result;
   },
 
   /**
@@ -48,8 +76,14 @@ export const passengerService = {
    * @param {object} passengerData
    */
   async createPassenger(passengerData) {
-    const res = await apiClient.post("/passengers", passengerData);
-    return extractData(res);
+    const res = await apiClient.post(
+      "/passengers",
+      toPassengerRequest(passengerData),
+    );
+    const result = extractData(res);
+    return result.data
+      ? { ...result, data: normalizePassenger(result.data) }
+      : result;
   },
 
   /**
