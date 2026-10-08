@@ -4,18 +4,25 @@ import {
   Users,
   Plane,
   TrendingUp,
-  ArrowUpRight,
   ArrowRight,
 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import adminService from "../services/adminService";
 import flightService from "../services/flightService";
+import bookingService from "../services/bookingService";
+import paymentService from "../services/paymentService";
 import RevenueChart from "../features/admin/reports/RevenueChart";
 import OccupancyChart from "../features/admin/reports/OccupancyChart";
 import BookingsChart from "../features/admin/reports/BookingsChart";
 import Badge from "../components/ui/Badge";
 import { Link } from "react-router-dom";
+import { useAppSelector } from "../app/store";
+import {
+  buildAdminDashboardMetrics,
+  getDashboardList,
+  getDashboardResponseData,
+} from "../utils/adminDashboardMetrics";
 const AnimatedCounter = ({
   target,
   prefix = "",
@@ -46,83 +53,74 @@ const AnimatedCounter = ({
     </span>
   );
 };
-const DEFAULT_DASHBOARD_STATS = {
-  kpis: {
-    totalRevenue: 48500000,
-    revenueChangePct: 12.4,
-    totalBookings: 1240,
-    bookingsChangePct: 8.6,
-    averageOccupancyPct: 84.2,
-    occupancyChangePct: 3.1,
-    activeFlights: 36,
-    activeFlightsChange: 4,
-  },
-  revenueByMonth: [
-    { month: "Jan", actual: 3800000, projected: 3500000 },
-    { month: "Feb", actual: 4100000, projected: 3800000 },
-    { month: "Mar", actual: 4400000, projected: 4000000 },
-    { month: "Apr", actual: 4200000, projected: 4100000 },
-    { month: "May", actual: 4900000, projected: 4500000 },
-    { month: "Jun", actual: 5300000, projected: 4800000 },
-  ],
-  occupancyByRoute: [
-    { route: "LOS-ABV", loadFactor: 92 },
-    { route: "LOS-PHC", loadFactor: 86 },
-    { route: "ABV-KAN", loadFactor: 78 },
-    { route: "LOS-LHR", loadFactor: 94 },
-    { route: "ABV-DXB", loadFactor: 88 },
-  ],
-  dailyBookings: [
-    { date: "Mon", confirmed: 142, cancelled: 8 },
-    { date: "Tue", confirmed: 168, cancelled: 11 },
-    { date: "Wed", confirmed: 185, cancelled: 7 },
-    { date: "Thu", confirmed: 210, cancelled: 14 },
-    { date: "Fri", confirmed: 245, cancelled: 12 },
-    { date: "Sat", confirmed: 198, cancelled: 9 },
-    { date: "Sun", confirmed: 176, cancelled: 6 },
-  ],
-};
-
 const AdminDashboardPage = () => {
+  const role = useAppSelector((state) => state.auth.role);
+  const canViewSystemMetrics = role === "ADMINISTRATOR";
   const [stats, setStats] = useState(null);
-  const [recentFlights, setRecentFlights] = useState([]);
+  const [auditSummary, setAuditSummary] = useState(null);
+  const [sourceStatus, setSourceStatus] = useState(null);
+  const [loadErrors, setLoadErrors] = useState([]);
   const [loading, setLoading] = useState(true);
   const dashboardRef = useRef(null);
 
   useEffect(() => {
-    Promise.all([
-      adminService.getDashboardStats().catch(() => ({ success: false, data: null })),
-      flightService.getFlights().catch(() => ({ success: false, data: [] })),
-    ])
-      .then(([statsRes, flightsRes]) => {
-        const serverStats = statsRes?.data;
-        const mergedStats = {
-          ...DEFAULT_DASHBOARD_STATS,
-          ...(serverStats && serverStats.kpis ? serverStats : {}),
-        };
+    let cancelled = false;
+    const sources = [
+      { key: "flights", label: "Flights", request: flightService.getFlights },
+      ...(canViewSystemMetrics
+        ? [
+            { key: "dashboard", label: "Admin summary", request: adminService.getDashboardStats },
+            { key: "bookings", label: "Bookings", request: bookingService.getBookings },
+            { key: "payments", label: "Payments", request: paymentService.getPayments },
+          ]
+        : []),
+    ];
 
-        const flightsList = Array.isArray(flightsRes?.data)
-          ? flightsRes.data
-          : Array.isArray(flightsRes?.data?.content)
-            ? flightsRes.data.content
-            : [];
+    Promise.allSettled(sources.map(({ request }) => request())).then((results) => {
+      if (cancelled) return;
+      const values = Object.fromEntries(
+        results.map((result, index) => [
+          sources[index].key,
+          result.status === "fulfilled"
+            ? getDashboardResponseData(result.value)
+            : null,
+        ]),
+      );
+      const statuses = Object.fromEntries(
+        results.map((result, index) => [
+          sources[index].key,
+          result.status === "fulfilled" &&
+            (sources[index].key === "dashboard"
+              ? Boolean(values.dashboard)
+              : getDashboardList(values[sources[index].key]) !== null),
+        ]),
+      );
 
-        if (flightsList.length > 0) {
-          mergedStats.kpis = {
-            ...mergedStats.kpis,
-            activeFlights: flightsList.length,
-          };
-        }
+      setStats(
+        buildAdminDashboardMetrics({
+          flights: statuses.flights ? values.flights : null,
+          bookings:
+            canViewSystemMetrics && statuses.bookings ? values.bookings : null,
+          payments:
+            canViewSystemMetrics && statuses.payments ? values.payments : null,
+        }),
+      );
+      setAuditSummary(statuses.dashboard ? values.dashboard : null);
+      setSourceStatus({ ...statuses, dashboard: canViewSystemMetrics && statuses.dashboard });
+      setLoadErrors(
+        results.flatMap((result, index) =>
+          result.status === "rejected" || !statuses[sources[index].key]
+            ? [sources[index].label]
+            : [],
+        ),
+      );
+      setLoading(false);
+    });
 
-        setStats(mergedStats);
-        setRecentFlights(flightsList.slice(0, 5));
-        setLoading(false);
-      })
-      .catch(() => {
-        setStats(DEFAULT_DASHBOARD_STATS);
-        setLoading(false);
-      });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [canViewSystemMetrics]);
 
   useGSAP(
     () => {
@@ -158,47 +156,64 @@ const AdminDashboardPage = () => {
 
   const kpis = [
     {
-      title: "Total System Revenue",
-      targetValue: stats?.kpis?.totalRevenue ?? 0,
+      title: "Successful Payment Revenue (All Time)",
+      targetValue: stats.revenue.total,
       prefix: "\u20A6",
       suffix: "",
       decimals: 0,
-      change: `+${stats?.kpis?.revenueChangePct ?? 0}%`,
+      change: stats.revenue.change,
       icon: <Banknote size={20} className="text-primary" />,
       bg: "bg-primary/10",
     },
     {
       title: "Confirmed Reservations",
-      targetValue: stats?.kpis?.totalBookings ?? 0,
+      targetValue: stats.bookings.confirmedCount,
       prefix: "",
       suffix: "",
       decimals: 0,
-      change: `+${stats?.kpis?.bookingsChangePct ?? 0}%`,
+      change: stats.bookings.change,
       icon: <Users size={20} className="text-secondary" />,
       bg: "bg-orange-50",
     },
     {
       title: "Average Flight Occupancy",
-      targetValue: stats?.kpis?.averageOccupancyPct ?? 0,
+      targetValue: stats.occupancy.average,
       prefix: "",
       suffix: "%",
       decimals: 1,
-      change: `+${stats?.kpis?.occupancyChangePct ?? 0}%`,
+      change: "Calculated from flight seat availability",
       icon: <TrendingUp size={20} className="text-emerald-600" />,
       bg: "bg-emerald-50",
     },
     {
-      title: "Active Scheduled Flights",
-      targetValue: stats?.kpis?.activeFlights ?? 0,
+      title: "Non-cancelled Flights",
+      targetValue: stats.flights.activeCount,
       prefix: "",
       suffix: "",
       decimals: 0,
-      change: `+${stats?.kpis?.activeFlightsChange ?? 0} routes`,
+      change: null,
       icon: <Plane size={20} className="text-secondary" />,
     },
   ];
   return (
     <div ref={dashboardRef} className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
+      {loadErrors.length > 0 && (
+        <div
+          role="status"
+          className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          Could not load {loadErrors.join(", ")} data from the backend. Values
+          from those sources are shown as unavailable, not replaced with sample
+          data.
+        </div>
+      )}
+      {!canViewSystemMetrics && (
+        <div className="rounded-xl border border-border bg-surface-muted p-4 text-sm text-muted">
+          The backend provides system-wide bookings, payment totals, and audit
+          counts to administrator accounts only. Those figures are unavailable
+          for staff accounts; flight information remains available.
+        </div>
+      )}
       {/* KPI Cards with animated count-up numbers */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {kpis.map((kpi, idx) => (
@@ -219,17 +234,22 @@ const AdminDashboardPage = () => {
 
             <div className="mt-4">
               <div className="text-2xl font-black text-foreground tracking-tight">
-                <AnimatedCounter
-                  target={kpi.targetValue}
-                  prefix={kpi.prefix}
-                  suffix={kpi.suffix}
-                  decimals={kpi.decimals}
-                />
+                {kpi.targetValue === null ? (
+                  <span aria-label={`${kpi.title} unavailable`}>—</span>
+                ) : (
+                  <AnimatedCounter
+                    target={kpi.targetValue}
+                    prefix={kpi.prefix}
+                    suffix={kpi.suffix}
+                    decimals={kpi.decimals}
+                  />
+                )}
               </div>
-              <div className="flex items-center gap-1 mt-1 text-xs font-semibold text-emerald-600">
-                <ArrowUpRight size={14} />
-                <span>{kpi.change} vs last month</span>
-              </div>
+              {kpi.change && (
+                <div className="mt-1 text-xs text-muted">
+                  {kpi.change}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -242,17 +262,23 @@ const AdminDashboardPage = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
-                Monthly Revenue Performance
+                Monthly Successful Payments
               </h3>
               <p className="text-xs text-muted">
-                Actual revenue vs projected budget targets
+                Successful payment amounts recorded by the payment service
               </p>
             </div>
             <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md">
-              FY 2026
+              Last 6 months
             </span>
           </div>
-          <RevenueChart data={stats?.revenueByMonth || []} />
+          {stats.revenue.byMonth ? (
+            <RevenueChart data={stats.revenue.byMonth} />
+          ) : (
+            <p className="grid h-72 place-items-center text-sm text-muted">
+              Payment data unavailable.
+            </p>
+          )}
         </div>
 
         {/* Route Occupancy Chart (4 cols) */}
@@ -262,10 +288,16 @@ const AdminDashboardPage = () => {
               Route Load Factor (%)
             </h3>
             <p className="text-xs text-muted">
-              Occupancy rate per high-demand route
+              Estimated from each flight&apos;s available and total seats
             </p>
           </div>
-          <OccupancyChart data={stats?.occupancyByRoute || []} />
+          {stats.occupancy.byRoute ? (
+            <OccupancyChart data={stats.occupancy.byRoute} />
+          ) : (
+            <p className="grid h-72 place-items-center text-sm text-muted">
+              Flight data unavailable.
+            </p>
+          )}
         </div>
       </div>
 
@@ -278,10 +310,16 @@ const AdminDashboardPage = () => {
               Weekly Booking Activity
             </h3>
             <p className="text-xs text-muted">
-              New reservations compared with cancellations
+              Seven-day booking creation totals, grouped by current status
             </p>
           </div>
-          <BookingsChart data={stats?.dailyBookings || []} />
+          {stats.bookings.byDay ? (
+            <BookingsChart data={stats.bookings.byDay} />
+          ) : (
+            <p className="grid h-72 place-items-center text-sm text-muted">
+              Booking data unavailable.
+            </p>
+          )}
         </div>
 
         {/* Live Flights Quick Overview (6 cols) */}
@@ -293,7 +331,7 @@ const AdminDashboardPage = () => {
                   Upcoming Flight Operations
                 </h3>
                 <p className="text-xs text-muted">
-                  Live operational flight status & gates
+                  Upcoming flights returned by the flight service
                 </p>
               </div>
               <Link
@@ -306,18 +344,25 @@ const AdminDashboardPage = () => {
             </div>
 
             <div className="divide-y divide-border">
-              {recentFlights.map((flight) => {
+              {stats.flights.upcoming === null ? (
+                <p className="py-8 text-center text-sm text-muted">
+                  Flight data unavailable.
+                </p>
+              ) : stats.flights.upcoming.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted">
+                  No upcoming scheduled flights.
+                </p>
+              ) : stats.flights.upcoming.map((flight) => {
                 const originCode =
                   typeof flight.origin === "object"
                     ? flight.origin?.code
-                    : flight.origin || "LOS";
+                    : flight.origin;
                 const destCode =
                   typeof flight.destination === "object"
                     ? flight.destination?.code
-                    : flight.destination || "ABV";
+                    : flight.destination;
                 const aircraftName =
-                  flight.aircraft || flight.aircraftCode || "B737";
-                const gateId = String(flight.id || "1").slice(-1) || "1";
+                  flight.aircraftCode || flight.aircraft;
                 const depTime = flight.departureTime
                   ? typeof flight.departureTime === "string" &&
                     flight.departureTime.includes("T")
@@ -326,11 +371,11 @@ const AdminDashboardPage = () => {
                         minute: "2-digit",
                       })
                     : flight.departureTime
-                  : "On Time";
+                  : "Time unavailable";
 
                 return (
                   <div
-                    key={flight.id || Math.random()}
+                      key={flight.id || flight.flightNumber}
                     className="py-3 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3">
@@ -342,7 +387,8 @@ const AdminDashboardPage = () => {
                           {flight.flightNumber || "TG-Flight"}
                         </p>
                         <p className="text-[11px] text-muted">
-                          {originCode} → {destCode} ({aircraftName})
+                          {originCode || "—"} → {destCode || "—"}
+                          {aircraftName ? ` (${aircraftName})` : ""}
                         </p>
                       </div>
                     </div>
@@ -352,7 +398,11 @@ const AdminDashboardPage = () => {
                         <p className="text-xs font-mono font-bold text-foreground">
                           {depTime}
                         </p>
-                        <p className="text-[10px] text-muted">Gate {gateId}</p>
+                        <p className="text-[10px] text-muted">
+                          {flight.departureTime
+                            ? new Date(flight.departureTime).toLocaleDateString()
+                            : "Departure date unavailable"}
+                        </p>
                       </div>
                       <Badge
                         variant={
@@ -364,7 +414,7 @@ const AdminDashboardPage = () => {
                         }
                         size="sm"
                       >
-                        {flight.status || "SCHEDULED"}
+                        {flight.status || "Status unavailable"}
                       </Badge>
                     </div>
                   </div>
@@ -374,84 +424,44 @@ const AdminDashboardPage = () => {
           </div>
 
           <div className="pt-4 mt-2 border-t border-border flex items-center justify-between text-xs text-muted">
-            <span>Fleet in Air: 3 Aircraft</span>
-            <span className="font-semibold text-emerald-600">
-              All Operations Normal
+            <span>
+              {stats.flights.activeCount === null
+                ? "Active flight count unavailable"
+                : `${stats.flights.activeCount} non-cancelled flight records`}
             </span>
+            {sourceStatus.flights && (
+              <span>Flight data loaded from backend</span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Live Operations & Passenger Activity Feed */}
+      {/* Admin audit summary */}
       <div className="admin-chart-card bg-surface p-6 rounded-2xl shadow-sm border border-border space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-border">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 className="text-sm font-black text-foreground uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live Operations & System Activity Feed
+            <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
+              Administrative Audit Summary
             </h3>
-            <p className="text-xs text-muted">
-              Real-time log of passenger transactions, flight departures, and
-              gate dispatches
+            <p className="mt-1 text-xs text-muted">
+              The admin service exposes an audit count, not an event feed.
             </p>
           </div>
-          <span className="text-[11px] font-mono text-muted">
-            Auto-refreshing (Active)
-          </span>
+          <div className="text-right">
+            <p className="text-2xl font-black text-foreground">
+              {typeof auditSummary?.auditActionCount === "number"
+                ? auditSummary.auditActionCount.toLocaleString()
+                : "—"}
+            </p>
+            <p className="text-xs text-muted">Recorded admin actions</p>
+          </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-          {[
-            {
-              time: "2m ago",
-              title: "New Booking Confirmed",
-              desc: "A new passenger booking was confirmed and payment was successfully captured.",
-              badge: "Booking",
-              badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-            },
-            {
-              time: "12m ago",
-              title: "Flight Delay Advisory",
-              desc: "Flight TG-204 (Lagos \u2192 London) delayed 35m due to ATC slot congestion",
-              badge: "Flight Ops",
-              badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
-            },
-            {
-              time: "28m ago",
-              title: "Online Check-In Issued",
-              desc: "Passenger Amaka Eze checked in for TG-204 LOS\u2192LHR (Seat 1F)",
-              badge: "Check-In",
-              badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
-            },
-            {
-              time: "45m ago",
-              title: "Aircraft Turnaround Inspection",
-              desc: "5N-TGR (Boeing 787-9) cleared by technical crew at Gate 12, Murtala Muhammed",
-              badge: "Maintenance",
-              badgeColor: "bg-surface-muted text-foreground border-border",
-            },
-          ].map((item, idx) => (
-            <div
-              key={idx}
-              className="p-3.5 bg-background rounded-xl border border-border space-y-1.5 hover:bg-surface-muted/70 transition"
-            >
-              <div className="flex items-center justify-between">
-                <span
-                  className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${item.badgeColor}`}
-                >
-                  {item.badge}
-                </span>
-                <span className="text-[10px] font-mono text-muted">
-                  {item.time}
-                </span>
-              </div>
-              <p className="font-bold text-foreground">{item.title}</p>
-              <p className="text-[11px] text-muted leading-relaxed">
-                {item.desc}
-              </p>
-            </div>
-          ))}
-        </div>
+        {auditSummary?.generatedAt && (
+          <p className="border-t border-border pt-3 text-xs text-muted">
+            Summary generated{" "}
+            {new Date(auditSummary.generatedAt).toLocaleString()}
+          </p>
+        )}
       </div>
     </div>
   );

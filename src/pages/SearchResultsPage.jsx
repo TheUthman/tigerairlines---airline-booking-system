@@ -8,14 +8,16 @@ import {
   ChevronRight,
   Filter,
   ArrowRight,
-  Check,
   AlertCircle,
-  Sparkles,
   X,
 } from "lucide-react";
 import flightService from "../services/flightService";
 import { useAppDispatch } from "../app/store";
-import { selectFlight, setBookingStep } from "../features/booking/bookingSlice";
+import {
+  selectFlight,
+  setBookingStep,
+  setSearchParams,
+} from "../features/booking/bookingSlice";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import { FlightCardSkeleton } from "../components/ui/Skeleton";
@@ -81,6 +83,7 @@ const SearchResultsPage = () => {
             originCode: originParam,
             destinationCode: destParam,
             date: departDateParam,
+            cabin: cabinParam.toUpperCase(),
           }),
         ]);
 
@@ -114,7 +117,7 @@ const SearchResultsPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [originParam, destParam]);
+  }, [originParam, destParam, departDateParam, cabinParam]);
   const airlineOptions = [
     ...new Set(flights.map((flight) => flight.airline).filter(Boolean)),
   ].sort((first, second) => first.localeCompare(second));
@@ -130,8 +133,10 @@ const SearchResultsPage = () => {
 
   const filteredFlights = flights
     .filter((flight) => {
-      const price =
-        cabinParam === "Business" ? flight.priceBusiness : flight.priceEconomy;
+      const price = cabinParam.toUpperCase() === "BUSINESS"
+        ? flight.businessFare ?? flight.priceBusiness
+        : flight.fare ?? flight.priceEconomy;
+      if (!Number.isFinite(Number(price)) || Number(price) <= 0) return false;
       if (price > maxPrice) return false;
       if (selectedStops === "direct" && flight.stops > 0) return false;
       if (selectedStops === "1stop" && flight.stops === 0) return false;
@@ -140,10 +145,12 @@ const SearchResultsPage = () => {
       return true;
     })
     .sort((a, b) => {
-      const priceA =
-        cabinParam === "Business" ? a.priceBusiness : a.priceEconomy;
-      const priceB =
-        cabinParam === "Business" ? b.priceBusiness : b.priceEconomy;
+      const priceA = cabinParam.toUpperCase() === "BUSINESS"
+        ? a.businessFare ?? a.priceBusiness
+        : a.fare ?? a.priceEconomy;
+      const priceB = cabinParam.toUpperCase() === "BUSINESS"
+        ? b.businessFare ?? b.priceBusiness
+        : b.fare ?? b.priceEconomy;
       if (sortBy === "price") return priceA - priceB;
       if (sortBy === "duration") return a.duration.localeCompare(b.duration);
       if (sortBy === "departure")
@@ -154,9 +161,10 @@ const SearchResultsPage = () => {
   const handleSelectFareTier = (flight, fareTier) => {
     const flightCopy = {
       ...flight,
-      cabinClass: fareTier === "Business" ? "Business" : "Economy",
+      cabinClass: fareTier,
     };
     dispatch(selectFlight(flightCopy));
+    dispatch(setSearchParams({ cabinClass: fareTier }));
     dispatch(setBookingStep(1));
     navigate("/book");
   };
@@ -347,15 +355,19 @@ const SearchResultsPage = () => {
                         </div>
                         <div>
                           <p className="font-mono text-xl font-semibold text-foreground">
-                            {formatNaira(f.priceEconomy)}
+                            {formatNaira(
+                              cabinParam.toUpperCase() === "BUSINESS"
+                                ? f.businessFare ?? f.priceBusiness
+                                : f.fare ?? f.priceEconomy,
+                            )}
                           </p>
                           <Button
                             size="sm"
                             variant="primary"
-                            onClick={() => handleSelectFareTier(f, "Classic")}
+                            onClick={() => handleSelectFareTier(f, cabinParam)}
                             className="mt-1"
                           >
-                            Select Flight
+                            Select {cabinParam}
                           </Button>
                         </div>
                       </div>
@@ -365,14 +377,11 @@ const SearchResultsPage = () => {
               </div>
             ) : (
               filteredFlights.map((flight) => {
-                const currentPrice =
-                  cabinParam === "Business"
-                    ? flight.priceBusiness
-                    : flight.priceEconomy;
-                const seatsLeft =
-                  cabinParam === "Business"
-                    ? flight.availableSeatsBusiness
-                    : flight.availableSeatsEconomy;
+                const isBusiness = cabinParam.toUpperCase() === "BUSINESS";
+                const currentPrice = isBusiness
+                  ? flight.businessFare ?? flight.priceBusiness
+                  : flight.fare ?? flight.priceEconomy;
+                const seatsLeft = flight.availableSeats;
                 const isExpanded = expandedFlightId === flight.id;
                 return (
                   <div
@@ -476,7 +485,7 @@ const SearchResultsPage = () => {
                           {formatNaira(currentPrice)}
                         </div>
                         <span className="text-[10px] text-muted mb-3">
-                          per passenger, taxes incl.
+                          published base fare per passenger
                         </span>
 
                         <Button
@@ -492,7 +501,7 @@ const SearchResultsPage = () => {
                       </div>
                     </div>
 
-                    {/* Fare Tier Comparison Cards (Economy Classic, Economy Flex, Business Class) */}
+                    {/* Only backend-managed cabin fares are offered here. */}
                     {isExpanded && (
                       <div className="pt-6 border-t border-border space-y-4 animate-in fade-in duration-200">
                         <div className="flex items-center justify-between">
@@ -504,181 +513,48 @@ const SearchResultsPage = () => {
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {/* Tier 1: Economy Classic */}
-                          <div className="bg-background rounded-2xl p-4 border border-border flex flex-col justify-between space-y-4 hover:border-border transition">
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-start">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          {[
+                            {
+                              cabin: "Economy",
+                              fare: flight.fare ?? flight.priceEconomy,
+                            },
+                            {
+                              cabin: "Business",
+                              fare: flight.businessFare ?? flight.priceBusiness,
+                            },
+                          ]
+                            .filter(({ fare }) => Number(fare) > 0)
+                            .map(({ cabin, fare }) => (
+                              <div
+                                key={cabin}
+                                className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-background p-4"
+                              >
                                 <div>
-                                  <h5 className="font-bold text-foreground text-sm">
-                                    Economy Classic
+                                  <h5 className="text-sm font-bold text-foreground">
+                                    {cabin} Class
                                   </h5>
-                                  <span className="text-[10px] text-muted">
-                                    Standard TigerAirlines Travel
-                                  </span>
+                                  <p className="mt-1 text-xs text-muted">
+                                    Published fare per passenger
+                                  </p>
+                                  <p className="mt-3 font-mono text-xl font-black text-foreground">
+                                    {formatNaira(fare)}
+                                  </p>
                                 </div>
-                                <span className="font-mono font-black text-base text-foreground">
-                                  {formatNaira(flight.priceEconomy)}
-                                </span>
+                                <Button
+                                  variant={
+                                    cabin === "Business" ? "accent" : "primary"
+                                  }
+                                  size="sm"
+                                  onClick={() =>
+                                    handleSelectFareTier(flight, cabin)
+                                  }
+                                  className="w-full font-bold"
+                                >
+                                  Choose {cabin}
+                                </Button>
                               </div>
-                              <ul className="text-[11px] text-muted space-y-1.5 pt-2">
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-600"
-                                  />{" "}
-                                  20 kg Checked Baggage
-                                </li>
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-600"
-                                  />{" "}
-                                  Standard In-Flight Meal
-                                </li>
-                                <li className="flex items-center gap-1.5 text-muted">
-                                  ✕ Seat selection for small fee
-                                </li>
-                                <li className="flex items-center gap-1.5 text-muted">
-                                  ✕ ₦15,000 cancellation charge
-                                </li>
-                              </ul>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleSelectFareTier(flight, "Classic")
-                              }
-                              className="w-full font-bold"
-                            >
-                              Choose Classic ({formatNaira(flight.priceEconomy)}
-                              )
-                            </Button>
-                          </div>
-
-                          {/* Tier 2: Economy Flex */}
-                            <div className="relative flex flex-col justify-between space-y-4 rounded-xl border-2 border-primary/60 bg-primary-soft p-4 shadow-sm">
-                            <div className="absolute -top-2.5 right-4 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold text-on-primary">
-                              Most Popular
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h5 className="font-bold text-primary text-sm">
-                                    Economy Flex
-                                  </h5>
-                                  <span className="text-[10px] text-muted">
-                                    Flexible Travel with Perks
-                                  </span>
-                                </div>
-                                <span className="font-mono font-black text-base text-primary">
-                                  {formatNaira(flight.priceEconomy + 2e4)}
-                                </span>
-                              </div>
-                              <ul className="text-[11px] text-foreground space-y-1.5 pt-2">
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-600"
-                                  />{" "}
-                                  30 kg Checked Baggage (+10kg)
-                                </li>
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-600"
-                                  />{" "}
-                                  Free Standard Seat Selection
-                                </li>
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-600"
-                                  />{" "}
-                                  Priority Check-in Line
-                                </li>
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-600"
-                                  />{" "}
-                                  Free 1-time date change
-                                </li>
-                              </ul>
-                            </div>
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={() =>
-                                handleSelectFareTier(flight, "Flex")
-                              }
-                              className="w-full font-bold shadow-xs"
-                            >
-                              Choose Flex (
-                              {formatNaira(flight.priceEconomy + 2e4)})
-                            </Button>
-                          </div>
-
-                          {/* Tier 3: Royal Business Class */}
-                          <div className="bg-background text-foreground rounded-2xl p-4 border border-border flex flex-col justify-between space-y-4 shadow-sm">
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h5 className="font-bold text-secondary text-sm flex items-center gap-1">
-                                    <Sparkles size={13} /> Royal Business
-                                  </h5>
-                                  <span className="text-[10px] text-muted">
-                                    Ultimate Luxury & Lounge
-                                  </span>
-                                </div>
-                                <span className="font-mono font-black text-base text-foreground">
-                                  {formatNaira(flight.priceBusiness)}
-                                </span>
-                              </div>
-                              <ul className="text-[11px] text-muted space-y-1.5 pt-2">
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-400"
-                                  />{" "}
-                                  40 kg Baggage + 2 Cabin Bags
-                                </li>
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-400"
-                                  />{" "}
-                                  Lagos & Abuja Executive Lounge Access
-                                </li>
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-400"
-                                  />{" "}
-                                  Priority Boarding & Baggage
-                                </li>
-                                <li className="flex items-center gap-1.5">
-                                  <Check
-                                    size={13}
-                                    className="text-emerald-400"
-                                  />{" "}
-                                  Lie-flat Seat & Gourmet Nigerian Dining
-                                </li>
-                              </ul>
-                            </div>
-                            <Button
-                              variant="accent"
-                              size="sm"
-                              onClick={() =>
-                                handleSelectFareTier(flight, "Business")
-                              }
-                              className="w-full font-bold text-on-secondary"
-                            >
-                              Choose Business (
-                              {formatNaira(flight.priceBusiness)})
-                            </Button>
-                          </div>
+                            ))}
                         </div>
                       </div>
                     )}

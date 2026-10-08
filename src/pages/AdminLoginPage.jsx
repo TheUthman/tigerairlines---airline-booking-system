@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
-  ShieldCheck,
   Lock,
   Mail,
   Plane,
@@ -10,6 +9,8 @@ import {
 } from "lucide-react";
 import { useAppDispatch } from "../app/store";
 import { loginSuccess } from "../features/auth/authSlice";
+import authService from "../services/authService";
+import { getApiErrorMessage } from "../services/apiClient";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import ThemeToggle from "../components/ui/ThemeToggle";
@@ -21,43 +22,39 @@ const AdminLoginPage = () => {
   const dispatch = useAppDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("ADMINISTRATOR");
   const [error, setError] = useState(location.state?.error || null);
   const [isLoading, setIsLoading] = useState(false);
-  const from = location.state?.from?.pathname || "/admin";
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-    setTimeout(() => {
-      if (!email.includes("@") || password.length < 4) {
-        setError(
-          "Invalid staff credentials. Please check your official email and PIN.",
+    try {
+      const { data: session } = await authService.login({ email, password });
+      if (!session?.token || !session?.user) {
+        throw new Error("The server did not return a valid sign-in session.");
+      }
+      if (!["ADMINISTRATOR", "STAFF"].includes(session.user.role)) {
+        throw new Error(
+          "This account does not have staff or administrator access.",
         );
-        setIsLoading(false);
-        return;
       }
 
-      dispatch(
-        loginSuccess({
-          user: {
-            id: "admin-soliat",
-            name:
-              role === "ADMINISTRATOR"
-                ? "Captain Soliat T."
-                : "Flight Dispatcher Emeka",
-            email,
-            role,
-            avatar:
-              "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
-          },
-          token: "tiger-admin-session-token-" + Date.now(),
-        }),
+      dispatch(loginSuccess(session));
+      navigate("/admin", { replace: true });
+    } catch (loginError) {
+      setError(
+        loginError.response
+          ? getApiErrorMessage(
+              loginError,
+              "Unable to sign in. Please verify your staff credentials.",
+            )
+          : loginError.message ||
+              "Unable to sign in. Please verify your staff credentials.",
       );
+    } finally {
       setIsLoading(false);
-      navigate(from, { replace: true });
-    }, 400);
+    }
   };
 
   return (
@@ -80,7 +77,7 @@ const AdminLoginPage = () => {
               <Plane size={23} className="-rotate-45" aria-hidden="true" />
             </div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
-              Authorized staff
+              Staff sign-in
             </p>
             <h1 className="text-3xl font-black tracking-tight text-foreground">
               Operations console
@@ -102,30 +99,7 @@ const AdminLoginPage = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <fieldset>
-                <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-foreground">
-                  Staff role
-                </legend>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRole("ADMINISTRATOR")}
-                    aria-pressed={role === "ADMINISTRATOR"}
-                    className={`rounded-xl border px-3 py-3 text-xs font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${role === "ADMINISTRATOR" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted hover:bg-surface-muted"}`}
-                  >
-                    Administrator
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole("STAFF")}
-                    aria-pressed={role === "STAFF"}
-                    className={`rounded-xl border px-3 py-3 text-xs font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${role === "STAFF" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted hover:bg-surface-muted"}`}
-                  >
-                    Flight staff
-                  </button>
-                </div>
-              </fieldset>
-
+              <div className="space-y-5">
               <Input
                 label="Staff email"
                 type="email"
@@ -155,6 +129,7 @@ const AdminLoginPage = () => {
               >
                 Sign in to operations
               </Button>
+              </div>
             </form>
 
             <p className="mt-5 border-t border-border pt-4 text-center text-[11px] text-muted">

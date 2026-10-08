@@ -1,9 +1,26 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { normalizeAuthRole } from "./authRoles";
+
+const clearStoredAuth = () => {
+  try {
+    localStorage.setItem("tiger_logged_out", "true");
+    localStorage.removeItem("tiger_auth_user");
+    localStorage.removeItem("tiger_auth_token");
+    localStorage.removeItem("tiger_token");
+    localStorage.removeItem("tiger_refresh_token");
+  } catch (e) {}
+
+  try {
+    sessionStorage.removeItem("tiger_token");
+    sessionStorage.removeItem("tiger_refresh_token");
+  } catch (e) {}
+};
 
 const getInitialAuthState = () => {
   try {
     const isLoggedOut = localStorage.getItem("tiger_logged_out") === "true";
     if (isLoggedOut) {
+      clearStoredAuth();
       return {
         user: null,
         isAuthenticated: false,
@@ -19,8 +36,9 @@ const getInitialAuthState = () => {
       localStorage.getItem("tiger_auth_token") ||
       localStorage.getItem("tiger_token");
     if (savedUserRaw && token) {
-      const user = JSON.parse(savedUserRaw);
-      const role = user.role || "CUSTOMER";
+      const savedUser = JSON.parse(savedUserRaw);
+      const role = normalizeAuthRole(savedUser.role);
+      const user = { ...savedUser, role };
       const isAdmin = role === "ADMINISTRATOR" || role === "STAFF";
       return {
         user,
@@ -32,6 +50,7 @@ const getInitialAuthState = () => {
         error: null,
       };
     }
+    clearStoredAuth();
     return {
       user: null,
       isAuthenticated: false,
@@ -42,6 +61,7 @@ const getInitialAuthState = () => {
       error: null,
     };
   } catch {
+    clearStoredAuth();
     return {
       user: null,
       isAuthenticated: false,
@@ -59,19 +79,21 @@ const authSlice = createSlice({
   initialState: getInitialAuthState(),
   reducers: {
     loginSuccess: (state, action) => {
-      state.user = action.payload.user;
+      const user = {
+        ...action.payload.user,
+        role: normalizeAuthRole(action.payload.user.role),
+      };
+      state.user = user;
       state.token = action.payload.token;
       state.isAuthenticated = true;
-      state.role = action.payload.user.role;
-      state.isAdmin =
-        action.payload.user.role === "ADMINISTRATOR" ||
-        action.payload.user.role === "STAFF";
+      state.role = user.role;
+      state.isAdmin = user.role === "ADMINISTRATOR" || user.role === "STAFF";
       state.error = null;
       try {
         localStorage.removeItem("tiger_logged_out");
         localStorage.setItem(
           "tiger_auth_user",
-          JSON.stringify(action.payload.user),
+          JSON.stringify(user),
         );
         localStorage.setItem("tiger_auth_token", action.payload.token);
       } catch (e) {}
@@ -83,11 +105,7 @@ const authSlice = createSlice({
       state.role = null;
       state.isAdmin = false;
       state.error = null;
-      try {
-        localStorage.setItem("tiger_logged_out", "true");
-        localStorage.removeItem("tiger_auth_user");
-        localStorage.removeItem("tiger_auth_token");
-      } catch (e) {}
+      clearStoredAuth();
     },
     setAdminMode: (state, action) => {
       if (action.payload) {
@@ -110,10 +128,7 @@ const authSlice = createSlice({
         state.role = null;
         state.isAdmin = false;
         state.token = null;
-        try {
-          localStorage.removeItem("tiger_auth_user");
-          localStorage.removeItem("tiger_auth_token");
-        } catch {}
+        clearStoredAuth();
       }
     },
     setError: (state, action) => {

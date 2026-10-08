@@ -1,188 +1,331 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
-const FlightForm = ({
-  initialFlight,
-  initialData,
-  onSubmit,
-  onCancel,
-  isLoading = false
-}) => {
-  const flightRecord = initialFlight || initialData;
+import flightService from "../../../services/flightService";
+import { getApiErrorMessage } from "../../../services/apiClient";
+
+const airportCode = (airport) =>
+  typeof airport === "string" ? airport : airport?.code || "";
+
+const toDateTimeInput = (value, date, time) => {
+  if (typeof value === "string" && value.includes("T")) {
+    return value.slice(0, 16);
+  }
+  if (date && time) return `${date}T${time.slice(0, 5)}`;
+  return "";
+};
+
+const getFormValues = (flight) => ({
+  flightNumber: flight?.flightNumber || "",
+  origin: airportCode(flight?.origin),
+  destination: airportCode(flight?.destination),
+  departureTime: toDateTimeInput(
+    flight?.departureTime,
+    flight?.departureDate,
+    flight?.departureTime,
+  ),
+  arrivalTime: toDateTimeInput(
+    flight?.arrivalTime,
+    flight?.arrivalDate,
+    flight?.arrivalTime,
+  ),
+  fare: flight?.fare ?? flight?.priceEconomy ?? "",
+  businessFare: flight?.businessFare ?? flight?.priceBusiness ?? 0,
+  availableSeats: flight?.availableSeats ?? flight?.availableSeatsEconomy ?? "",
+  totalSeats: flight?.totalSeats ?? "",
+  aircraftCode: flight?.aircraftCode || flight?.aircraft || "",
+});
+
+const fieldClass =
+  "mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
+const labelClass = "block text-xs font-semibold text-muted";
+
+const FlightForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
+  const [airports, setAirports] = useState([]);
+  const [aircraft, setAircraft] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogErrors, setCatalogErrors] = useState([]);
   const {
     register,
     handleSubmit,
+    getValues,
     reset,
-    formState: { errors }
-  } = useForm({
-    defaultValues: {
-      flightNumber: flightRecord?.flightNumber || "TG-105",
-      originCode: flightRecord?.origin.code || "LOS",
-      originCity: flightRecord?.origin.city || "Lagos",
-      destCode: flightRecord?.destination.code || "ABV",
-      destCity: flightRecord?.destination.city || "Abuja",
-      departureTime: flightRecord?.departureTime || "09:00",
-      arrivalTime: flightRecord?.arrivalTime || "10:05",
-      departureDate: flightRecord?.departureDate || "2026-10-15",
-      duration: flightRecord?.duration || "1h 05m",
-      stops: flightRecord?.stops ?? 0,
-      aircraft: flightRecord?.aircraft || "Airbus A320neo",
-      priceEconomy: flightRecord?.priceEconomy || 45e3,
-      priceBusiness: flightRecord?.priceBusiness || 15e4,
-      availableSeatsEconomy: flightRecord?.availableSeatsEconomy || 45,
-      availableSeatsBusiness: flightRecord?.availableSeatsBusiness || 8,
-      status: flightRecord?.status || "SCHEDULED"
-    }
-  });
+    formState: { errors },
+  } = useForm({ defaultValues: getFormValues(initialData) });
+
   useEffect(() => {
-    if (flightRecord) {
-      reset({
-        flightNumber: flightRecord.flightNumber,
-        originCode: flightRecord.origin.code,
-        originCity: flightRecord.origin.city,
-        destCode: flightRecord.destination.code,
-        destCity: flightRecord.destination.city,
-        departureTime: flightRecord.departureTime,
-        arrivalTime: flightRecord.arrivalTime,
-        departureDate: flightRecord.departureDate,
-        duration: flightRecord.duration,
-        stops: flightRecord.stops,
-        aircraft: flightRecord.aircraft,
-        priceEconomy: flightRecord.priceEconomy,
-        priceBusiness: flightRecord.priceBusiness,
-        availableSeatsEconomy: flightRecord.availableSeatsEconomy,
-        availableSeatsBusiness: flightRecord.availableSeatsBusiness,
-        status: flightRecord.status
-      });
-    }
-  }, [flightRecord, reset]);
-  return <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-xs">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Input
-    label="Flight Number *"
-    placeholder="e.g. TG-105"
-    {...register("flightNumber", { required: "Required" })}
-    error={errors.flightNumber?.message}
-  />
+    reset(getFormValues(initialData));
+  }, [initialData, reset]);
 
-        <Input
-    label="Aircraft Model *"
-    placeholder="e.g. Airbus A320neo"
-    {...register("aircraft", { required: "Required" })}
-    error={errors.aircraft?.message}
-  />
+  useEffect(() => {
+    let isCurrent = true;
+    const loadCatalogs = async () => {
+      setCatalogLoading(true);
+      setCatalogErrors([]);
+      const [airportResult, aircraftResult] = await Promise.allSettled([
+        flightService.getAdminAirports(),
+        flightService.getAircraft(),
+      ]);
 
-        <div>
-          <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
-            Flight Status
+      if (!isCurrent) return;
+
+      const errors = [];
+      if (airportResult.status === "fulfilled") {
+        const records = airportResult.value?.data;
+        setAirports(Array.isArray(records) ? records : []);
+      } else {
+        setAirports([]);
+        errors.push(
+          `Airport suggestions unavailable: ${getApiErrorMessage(
+            airportResult.reason,
+            "could not load airports.",
+          )}`,
+        );
+      }
+
+      if (aircraftResult.status === "fulfilled") {
+        const records = aircraftResult.value?.data;
+        setAircraft(Array.isArray(records) ? records : []);
+      } else {
+        setAircraft([]);
+        errors.push(
+          `Aircraft suggestions unavailable: ${getApiErrorMessage(
+            aircraftResult.reason,
+            "could not load aircraft.",
+          )}`,
+        );
+      }
+
+      setCatalogErrors(errors);
+      setCatalogLoading(false);
+    };
+
+    loadCatalogs();
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const errorText = (message) =>
+    message ? <p className="mt-1 text-xs text-red-600">{message}</p> : null;
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <section>
+        <h3 className="mb-3 text-sm font-bold text-foreground">Flight details</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={labelClass}>
+            Flight number
+            <input
+              {...register("flightNumber", { required: "Flight number is required." })}
+              className={fieldClass}
+              placeholder="e.g. TA101"
+            />
+            {errorText(errors.flightNumber?.message)}
           </label>
-          <select
-    {...register("status")}
-    className="w-full bg-surface border border-border rounded-lg p-2.5 text-xs font-semibold"
-  >
-            <option value="SCHEDULED">SCHEDULED</option>
-            <option value="BOARDING">BOARDING</option>
-            <option value="DEPARTED">DEPARTED</option>
-            <option value="DELAYED">DELAYED</option>
-            <option value="CANCELLED">CANCELLED</option>
-          </select>
+          <label className={labelClass}>
+            Origin airport code
+            <input
+              {...register("origin", {
+                required: "Origin airport code is required.",
+                pattern: { value: /^[A-Za-z]{3}$/, message: "Enter a 3-letter airport code." },
+              })}
+              list="flight-airport-codes"
+              className={fieldClass}
+              placeholder="LOS"
+              maxLength={3}
+              autoComplete="off"
+            />
+            {errorText(errors.origin?.message)}
+          </label>
+          <label className={labelClass}>
+            Destination airport code
+            <input
+              {...register("destination", {
+                required: "Destination airport code is required.",
+                pattern: { value: /^[A-Za-z]{3}$/, message: "Enter a 3-letter airport code." },
+              })}
+              list="flight-airport-codes"
+              className={fieldClass}
+              placeholder="ABV"
+              maxLength={3}
+              autoComplete="off"
+            />
+            {errorText(errors.destination?.message)}
+          </label>
+          <label className={labelClass}>
+            Departure date and time
+            <input
+              {...register("departureTime", { required: "Departure date and time are required." })}
+              className={fieldClass}
+              type="datetime-local"
+            />
+            {errorText(errors.departureTime?.message)}
+          </label>
+          <label className={labelClass}>
+            Arrival date and time
+            <input
+              {...register("arrivalTime", { required: "Arrival date and time are required." })}
+              className={fieldClass}
+              type="datetime-local"
+            />
+            {errorText(errors.arrivalTime?.message)}
+          </label>
+          <label className={labelClass}>
+            Aircraft code
+            <input
+              {...register("aircraftCode")}
+              list="flight-aircraft-codes"
+              className={fieldClass}
+              placeholder="e.g. B737-800"
+              autoComplete="off"
+            />
+          </label>
         </div>
-      </div>
+        <datalist id="flight-airport-codes">
+          {airports.map((airport) => (
+            <option
+              key={airport.id ?? airport.code}
+              value={airport.code}
+              label={[airport.name, airport.city, airport.country]
+                .filter(Boolean)
+                .join(" · ")}
+            />
+          ))}
+        </datalist>
+        <datalist id="flight-aircraft-codes">
+          {aircraft.map((item) => (
+            <option
+              key={item.id ?? item.code}
+              value={item.code}
+              label={[
+                item.model,
+                item.seatCapacity ? `${item.seatCapacity} seats` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            />
+          ))}
+        </datalist>
+        {catalogLoading && (
+          <p className="mt-3 text-xs text-muted" role="status">
+            Loading airport and aircraft suggestions…
+          </p>
+        )}
+        {catalogErrors.map((message) => (
+          <p key={message} className="mt-2 text-xs text-amber-700" role="status">
+            {message}
+          </p>
+        ))}
+        {!catalogLoading && !catalogErrors.length && !airports.length && (
+          <p className="mt-2 text-xs text-muted">
+            No airports are registered yet. Add airports in Airport Management to enable suggestions.
+          </p>
+        )}
+        {!catalogLoading && !catalogErrors.length && !aircraft.length && (
+          <p className="mt-2 text-xs text-muted">
+            No aircraft are registered yet. Add aircraft in Fleet Management to enable suggestions.
+          </p>
+        )}
+      </section>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Input
-    label="Origin Airport Code *"
-    placeholder="LOS"
-    {...register("originCode", { required: "Required" })}
-    error={errors.originCode?.message}
-  />
-        <Input
-    label="Origin City *"
-    placeholder="Lagos"
-    {...register("originCity", { required: "Required" })}
-    error={errors.originCity?.message}
-  />
-        <Input
-    label="Dest Airport Code *"
-    placeholder="ABV"
-    {...register("destCode", { required: "Required" })}
-    error={errors.destCode?.message}
-  />
-        <Input
-    label="Dest City *"
-    placeholder="Abuja"
-    {...register("destCity", { required: "Required" })}
-    error={errors.destCity?.message}
-  />
-      </div>
+      <section>
+        <h3 className="mb-3 text-sm font-bold text-foreground">Cabin fares and capacity</h3>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <label className={labelClass}>
+            Economy fare
+            <input
+              {...register("fare", {
+                required: "Fare is required.",
+                valueAsNumber: true,
+                min: { value: 0, message: "Fare cannot be negative." },
+                validate: (value) =>
+                  Number.isFinite(value) || "Enter a valid fare.",
+              })}
+              className={fieldClass}
+              type="number"
+              min="0"
+              step="0.01"
+            />
+            {errorText(errors.fare?.message)}
+          </label>
+          <label className={labelClass}>
+            Business fare
+            <input
+              {...register("businessFare", {
+                required: "Business fare is required. Use 0 to disable Business on this flight.",
+                valueAsNumber: true,
+                min: { value: 0, message: "Fare cannot be negative." },
+                validate: (value) =>
+                  Number.isFinite(value) || "Enter a valid fare.",
+              })}
+              className={fieldClass}
+              type="number"
+              min="0"
+              step="0.01"
+            />
+            {errorText(errors.businessFare?.message)}
+          </label>
+          <label className={labelClass}>
+            Available seats
+            <input
+              {...register("availableSeats", {
+                required: "Available seats are required.",
+                valueAsNumber: true,
+                min: { value: 0, message: "Must be zero or greater." },
+                validate: {
+                  wholeNumber: (value) =>
+                    Number.isInteger(value) || "Enter a whole number.",
+                  withinCapacity: (value) =>
+                    value <= Number(getValues("totalSeats")) ||
+                    "Available seats cannot exceed total capacity.",
+                },
+              })}
+              className={fieldClass}
+              type="number"
+              min="0"
+              step="1"
+            />
+            {errorText(errors.availableSeats?.message)}
+          </label>
+          <label className={labelClass}>
+            Total seats
+            <input
+              {...register("totalSeats", {
+                required: "Total seat capacity is required.",
+                valueAsNumber: true,
+                min: { value: 1, message: "Capacity must be at least 1." },
+                validate: {
+                  wholeNumber: (value) =>
+                    Number.isInteger(value) || "Enter a whole number.",
+                  enoughCapacity: (value) =>
+                    value >= Number(getValues("availableSeats")) ||
+                    "Total capacity cannot be less than available seats.",
+                },
+              })}
+              className={fieldClass}
+              type="number"
+              min="1"
+              step="1"
+            />
+            {errorText(errors.totalSeats?.message)}
+          </label>
+        </div>
+        <p className="mt-2 text-[11px] text-muted">
+          Enter separate base fares by cabin. Set Business fare to 0 to keep this flight Economy-only. Seat capacity is shared across cabins.
+        </p>
+      </section>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Input
-    label="Depart Time *"
-    type="time"
-    {...register("departureTime", { required: "Required" })}
-    error={errors.departureTime?.message}
-  />
-        <Input
-    label="Arrival Time *"
-    type="time"
-    {...register("arrivalTime", { required: "Required" })}
-    error={errors.arrivalTime?.message}
-  />
-        <Input
-    label="Flight Date *"
-    type="date"
-    {...register("departureDate", { required: "Required" })}
-    error={errors.departureDate?.message}
-  />
-        <Input
-    label="Duration *"
-    placeholder="4h 15m"
-    {...register("duration", { required: "Required" })}
-    error={errors.duration?.message}
-  />
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Input
-    label="Economy Price (₦) *"
-    type="number"
-    {...register("priceEconomy", { required: "Required", valueAsNumber: true })}
-    error={errors.priceEconomy?.message}
-  />
-        <Input
-    label="Business Price (₦) *"
-    type="number"
-    {...register("priceBusiness", { required: "Required", valueAsNumber: true })}
-    error={errors.priceBusiness?.message}
-  />
-        <Input
-    label="Economy Seats *"
-    type="number"
-    {...register("availableSeatsEconomy", { required: "Required", valueAsNumber: true })}
-    error={errors.availableSeatsEconomy?.message}
-  />
-        <Input
-    label="Business Seats *"
-    type="number"
-    {...register("availableSeatsBusiness", { required: "Required", valueAsNumber: true })}
-    error={errors.availableSeatsBusiness?.message}
-  />
-      </div>
-
-      <div className="flex justify-end gap-3 pt-4 border-t border-border">
+      <div className="flex justify-end gap-2 border-t border-border pt-4">
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" variant="primary" isLoading={isLoading} className="font-bold">
-          {initialFlight ? "Update Flight" : "Schedule New Flight"}
+        <Button type="submit" isLoading={isLoading}>
+          {initialData ? "Save flight" : "Schedule flight"}
         </Button>
       </div>
-    </form>;
+    </form>
+  );
 };
-var stdin_default = FlightForm;
-export {
-  FlightForm,
-  stdin_default as default
-};
+
+export default FlightForm;

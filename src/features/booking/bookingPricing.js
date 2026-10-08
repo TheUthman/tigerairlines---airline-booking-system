@@ -1,9 +1,15 @@
-export const getBookingPriceBreakdown = ({ flight, cabinClass, extras }) => {
-  const baseFare = flight
-    ? cabinClass === "Business"
-      ? flight.priceBusiness
-      : flight.priceEconomy
-    : 45000;
+export const getBookingPriceBreakdown = ({
+  flight,
+  cabinClass,
+  extras,
+  quotedBaseFare,
+}) => {
+  const baseFare = Number(
+    quotedBaseFare ??
+      (cabinClass?.toUpperCase() === "BUSINESS"
+        ? flight?.businessFare ?? flight?.priceBusiness
+        : flight?.fare ?? flight?.priceEconomy),
+  );
 
   const baggageCost =
     extras?.baggageKg === 30 ? 10000 : extras?.baggageKg === 40 ? 18000 : 0;
@@ -13,10 +19,11 @@ export const getBookingPriceBreakdown = ({ flight, cabinClass, extras }) => {
   const loungeCost = extras?.loungeAccess ? 8000 : 0;
   const extrasTotal =
     baggageCost + mealCost + insuranceCost + priorityCost + loungeCost;
-  const taxesAndFees = Math.round(baseFare * 0.075);
+  const safeBaseFare = Number.isFinite(baseFare) ? baseFare : 0;
+  const taxesAndFees = Math.round(safeBaseFare * 0.075);
 
   return {
-    baseFare,
+    baseFare: safeBaseFare,
     baggageCost,
     mealCost,
     insuranceCost,
@@ -24,6 +31,6 @@ export const getBookingPriceBreakdown = ({ flight, cabinClass, extras }) => {
     loungeCost,
     extrasTotal,
     taxesAndFees,
-    grandTotal: baseFare + extrasTotal + taxesAndFees,
+    grandTotal: safeBaseFare + extrasTotal + taxesAndFees,
   };
 };

@@ -1,4 +1,6 @@
 import axios from "axios";
+import { store } from "../app/store";
+import { logout } from "../features/auth/authSlice";
 
 const resolveApiBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_BASE_URL;
@@ -53,6 +55,9 @@ apiClient.interceptors.request.use((config) => {
   if (config.baseURL?.endsWith("/api") && config.url?.startsWith("/api/")) {
     config.url = config.url.replace(/^\/api/, "");
   }
+  if (isPublicAuthRoute(config.url) && config.headers) {
+    delete config.headers.Authorization;
+  }
   if (!isPublicAuthRoute(config.url)) {
     const token =
       localStorage.getItem("tiger_auth_token") ||
@@ -60,6 +65,8 @@ apiClient.interceptors.request.use((config) => {
       sessionStorage.getItem("tiger_token");
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (config.headers) {
+      delete config.headers.Authorization;
     }
   }
 
@@ -132,20 +139,18 @@ apiClient.interceptors.response.use(
             processQueue(null, accessToken);
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return apiClient(originalRequest);
+          } else {
+            throw new Error("Token refresh response did not include an access token.");
           }
         } catch (refreshErr) {
           processQueue(refreshErr, null);
-          localStorage.removeItem("tiger_auth_token");
-          localStorage.removeItem("tiger_refresh_token");
-          localStorage.removeItem("tiger_auth_user");
+          store.dispatch(logout());
           return Promise.reject(refreshErr);
         } finally {
           isRefreshing = false;
         }
       } else {
-        localStorage.removeItem("tiger_auth_token");
-        localStorage.removeItem("tiger_token");
-        localStorage.removeItem("tiger_auth_user");
+        store.dispatch(logout());
       }
     }
     return Promise.reject(error);

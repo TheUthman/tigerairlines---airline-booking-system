@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import authService from "../services/authService";
 import { getApiErrorMessage } from "../services/apiClient";
+import { useAppDispatch } from "../app/store";
+import { loginSuccess } from "../features/auth/authSlice";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { useToast } from "../components/ui/Toast";
@@ -79,6 +81,7 @@ const registerSchema = yup.object({
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const toast = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -157,23 +160,43 @@ const RegisterPage = () => {
         password: data.password,
       });
 
-      toast.success("Account created successfully! Please verify your email.");
-
-      const targetEmail = res?.data?.user?.email || data.email.trim();
-
-      // Trigger verification code request; don't block navigation if already sent
-      try {
-        await authService.requestEmailVerification(targetEmail);
-      } catch (verifErr) {
-        console.warn("Verification code email request notice:", verifErr);
+      let session = res.data;
+      if (!session?.token || !session?.user) {
+        try {
+          session = (
+            await authService.login({
+              email: data.email.trim(),
+              password: data.password,
+            })
+          ).data;
+        } catch (loginError) {
+          const loginMessage = getApiErrorMessage(
+            loginError,
+            "automatic sign-in failed.",
+          );
+          throw new Error(
+            `Account created, but automatic sign-in failed: ${loginMessage} The server may still require email verification; disable that requirement on the backend to sign in without email delivery.`,
+          );
+        }
       }
 
-      navigate("/verify-email", { state: { email: targetEmail } });
+      if (!session?.token || !session?.user) {
+        throw new Error(
+          "Your account was created, but the server did not provide a sign-in session. Email verification may still be required by the server.",
+        );
+      }
+
+      dispatch(loginSuccess(session));
+      toast.success(`Account created. Welcome, ${session.user.name}!`);
+      navigate("/my-trips", { replace: true });
     } catch (err) {
-      const message = getApiErrorMessage(
-        err,
-        "Registration failed. Please check your information and try again.",
-      );
+      const message = err.response
+        ? getApiErrorMessage(
+            err,
+            "Registration failed. Please check your information and try again.",
+          )
+        : err.message ||
+          "Registration failed. Please check your information and try again.";
       setServerError(message);
     } finally {
       setLoading(false);

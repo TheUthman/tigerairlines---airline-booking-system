@@ -45,7 +45,6 @@ export const pricingService = {
       departureDate,
       availableSeats = 30,
       totalSeats = 180,
-      cabin = "ECONOMY",
       promoCode = "",
       frequentFlyerPoints = 0
     } = payload;
@@ -79,16 +78,6 @@ export const pricingService = {
         multiplier += 0.10;
         rulesUsed.push("Moderate flight occupancy >= 65% (+10%)");
       }
-    }
-
-    // 3. Cabin class multiplier
-    const normalizedCabin = (cabin || "").toUpperCase();
-    if (normalizedCabin.includes("FIRST")) {
-      multiplier *= 2.75;
-      rulesUsed.push("First class multiplier (2.75x)");
-    } else if (normalizedCabin.includes("BUSINESS")) {
-      multiplier *= 1.80;
-      rulesUsed.push("Business class multiplier (1.80x)");
     }
 
     const calculatedFare = Math.round(baseFare * multiplier);

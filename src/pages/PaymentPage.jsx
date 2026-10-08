@@ -18,6 +18,8 @@ import { setConfirmedBooking } from "../features/booking/bookingSlice";
 import { bookingService, paymentService, pricingService } from "../services";
 import { useToast } from "../components/ui/Toast";
 import { BookingProgress, LoadingOverlay } from "../components/ui/LoadingState";
+import { getApiErrorMessage } from "../services/apiClient";
+import { getBookingPriceBreakdown } from "../features/booking/bookingPricing";
 
 const PaymentPage = () => {
   const navigate = useNavigate();
@@ -39,23 +41,15 @@ const PaymentPage = () => {
   const [appliedPromo, setAppliedPromo] = useState("");
   const [pricingQuote, setPricingQuote] = useState(null);
   const [isCalculatingQuote, setIsCalculatingQuote] = useState(false);
+  const [pricingError, setPricingError] = useState("");
 
   const rawBasePrice = Number(
     flight
-      ? cabinClass === "Business"
-        ? flight.priceBusiness ?? 0
-        : flight.priceEconomy ?? 0
+      ? cabinClass?.toUpperCase() === "BUSINESS"
+        ? flight.businessFare ?? flight.priceBusiness ?? 0
+        : flight.fare ?? flight.priceEconomy ?? 0
       : 0,
   );
-
-  const baggageCost =
-    extras.baggageKg === 30 ? 8000 : extras.baggageKg === 40 ? 15000 : 0;
-  const mealCost = extras.mealPreference === "Chef's Special" ? 3500 : 0;
-  const insuranceCost = extras.travelInsurance ? 5000 : 0;
-  const priorityCost = extras.priorityBoarding ? 2500 : 0;
-  const loungeCost = extras.loungeAccess ? 8000 : 0;
-  const extrasTotal =
-    baggageCost + mealCost + insuranceCost + priorityCost + loungeCost;
 
   // Recalculate dynamic pricing quote with pricingService
   useEffect(() => {
@@ -63,10 +57,13 @@ const PaymentPage = () => {
     const calculateDynamicQuote = async () => {
       if (!flight || !passenger.id) {
         setPricingQuote(null);
+        setPricingError("");
         setIsCalculatingQuote(false);
         return;
       }
 
+      setPricingQuote(null);
+      setPricingError("");
       setIsCalculatingQuote(true);
       try {
         const quoteRes = await pricingService.getQuote({
@@ -81,11 +78,22 @@ const PaymentPage = () => {
             passenger.frequentFlyerPoints ?? passenger.loyaltyPoints ?? 0,
         });
 
-        if (isSubscribed && quoteRes?.data) {
-          setPricingQuote(quoteRes.data);
+        const quotedFare = Number(quoteRes?.data?.total);
+        if (
+          isSubscribed &&
+          Number.isFinite(quotedFare) &&
+          quotedFare >= 0
+        ) {
+          setPricingQuote({ ...quoteRes.data, total: quotedFare });
+        } else if (isSubscribed) {
+          throw new Error("Pricing service returned an invalid fare quote.");
         }
       } catch (err) {
-        // Fallback already handled inside pricingService
+        if (isSubscribed) {
+          setPricingError(
+            getApiErrorMessage(err, "The fare quote could not be loaded."),
+          );
+        }
       } finally {
         if (isSubscribed) setIsCalculatingQuote(false);
       }
@@ -105,10 +113,22 @@ const PaymentPage = () => {
     passenger.loyaltyPoints,
   ]);
 
-  const effectiveBaseFare =
-    pricingQuote?.total !== undefined ? pricingQuote.total : rawBasePrice;
-  const taxesAndFees = Math.round(effectiveBaseFare * 0.12);
-  const grandTotal = effectiveBaseFare + extrasTotal + taxesAndFees;
+  const effectiveBaseFare = pricingQuote?.total ?? 0;
+  const {
+    baggageCost,
+    mealCost,
+    insuranceCost,
+    priorityCost,
+    loungeCost,
+    extrasTotal,
+    taxesAndFees,
+    grandTotal,
+  } = getBookingPriceBreakdown({
+    flight,
+    cabinClass,
+    extras,
+    quotedBaseFare: effectiveBaseFare,
+  });
 
   const handleApplyPromo = () => {
     if (!promoCodeInput.trim()) return;
@@ -135,6 +155,11 @@ const PaymentPage = () => {
       if (!flight?.id || !passenger?.id) {
         throw new Error("Your flight or passenger details are missing. Return to booking and try again.");
       }
+      if (isCalculatingQuote || !pricingQuote) {
+        throw new Error(
+          pricingError || "Wait for the fare quote before submitting payment.",
+        );
+      }
       if (
         !Number.isFinite(grandTotal) ||
         grandTotal <= 0 ||
@@ -159,6 +184,7 @@ const PaymentPage = () => {
         passengerId: passenger.id,
         seatNumber,
         amount: grandTotal,
+        cabinClass: (cabinClass || "Economy").toUpperCase(),
       };
 
       const bookingRes = await bookingService.createBooking(bookingPayload);
@@ -353,6 +379,7 @@ const PaymentPage = () => {
                     variant="accent"
                     size="lg"
                     isLoading={isProcessing}
+                    disabled={isCalculatingQuote || !pricingQuote}
                     className="w-full font-bold shadow-md hover:shadow-orange-500/25"
                   >
                     Submit payment request · ₦{grandTotal.toLocaleString("en-NG")}
@@ -445,6 +472,11 @@ const PaymentPage = () => {
               </div>
 
               {/* Items Breakdown */}
+              {pricingError && (
+                <p className="mb-3 text-sm text-danger" role="alert">
+                  {pricingError} Payment is disabled until the fare can be verified.
+                </p>
+              )}
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-muted">
                   <span>
@@ -500,7 +532,7 @@ const PaymentPage = () => {
                   </div>
                 )}
                 <div className="flex justify-between text-muted">
-                  <span>Taxes, Security & Fuel Surcharge (12%)</span>
+                  <span>Taxes, Security & Fuel Surcharge (7.5%)</span>
                   <span className="font-semibold text-foreground">
                     +₦{taxesAndFees.toLocaleString("en-NG")}
                   </span>

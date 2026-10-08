@@ -6,9 +6,11 @@ import {
   Ban,
   ArrowRight,
   Download,
-  CheckSquare
+  CheckSquare,
+  Clock3
 } from "lucide-react";
 import flightService from "../services/flightService";
+import { getApiErrorMessage } from "../services/apiClient";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import Modal from "../components/ui/Modal";
@@ -35,9 +37,16 @@ const AdminFlightsPage = () => {
   const pageSize = 6;
   const loadFlights = async () => {
     setLoading(true);
-    const res = await flightService.getFlights();
-    setFlights(res.data);
-    setLoading(false);
+    try {
+      const res = await flightService.getFlights();
+      const records = res?.data;
+      setFlights(Array.isArray(records) ? records : Array.isArray(records?.content) ? records.content : []);
+    } catch (error) {
+      setFlights([]);
+      toast.error(getApiErrorMessage(error, "Unable to load flights."));
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => {
     loadFlights();
@@ -45,71 +54,32 @@ const AdminFlightsPage = () => {
   const handleCreateOrUpdate = async (formData) => {
     setIsSubmitting(true);
     try {
+      const flightRequest = {
+        ...formData,
+        airline: editingFlight?.airline || "TigerAirlines",
+        fare: Number(formData.fare),
+        businessFare: Number(formData.businessFare),
+        availableSeats: Number(formData.availableSeats),
+        totalSeats: Number(formData.totalSeats),
+      };
       if (editingFlight) {
-        await flightService.updateFlight(editingFlight.id, {
-          flightNumber: formData.flightNumber,
-          aircraft: formData.aircraft,
-          status: formData.status,
-          departureTime: formData.departureTime,
-          arrivalTime: formData.arrivalTime,
-          departureDate: formData.departureDate,
-          duration: formData.duration,
-          stops: Number(formData.stops),
-          priceEconomy: Number(formData.priceEconomy),
-          priceBusiness: Number(formData.priceBusiness),
-          availableSeatsEconomy: Number(formData.availableSeatsEconomy),
-          availableSeatsBusiness: Number(formData.availableSeatsBusiness),
-          origin: {
-            code: formData.originCode,
-            city: formData.originCity,
-            country: "Nigeria",
-            name: `${formData.originCity} Airport`
-          },
-          destination: {
-            code: formData.destCode,
-            city: formData.destCity,
-            country: "International",
-            name: `${formData.destCity} International`
-          }
-        });
+        await flightService.updateFlight(editingFlight.id, flightRequest);
         toast.success(`Flight ${formData.flightNumber} successfully updated.`);
       } else {
-        await flightService.createFlight({
-          flightNumber: formData.flightNumber,
-          airline: "TigerAirlines",
-          aircraft: formData.aircraft,
-          status: formData.status,
-          departureTime: formData.departureTime,
-          arrivalTime: formData.arrivalTime,
-          departureDate: formData.departureDate,
-          arrivalDate: formData.departureDate,
-          duration: formData.duration,
-          stops: Number(formData.stops),
-          priceEconomy: Number(formData.priceEconomy),
-          priceBusiness: Number(formData.priceBusiness),
-          availableSeatsEconomy: Number(formData.availableSeatsEconomy),
-          availableSeatsBusiness: Number(formData.availableSeatsBusiness),
-          baggageIncluded: "30 kg",
-          mealIncluded: true,
-          wifiAvailable: true,
-          origin: {
-            code: formData.originCode,
-            city: formData.originCity,
-            country: "Nigeria",
-            name: `${formData.originCity} Airport`
-          },
-          destination: {
-            code: formData.destCode,
-            city: formData.destCity,
-            country: "International",
-            name: `${formData.destCity} International`
-          }
-        });
+        await flightService.createFlight(flightRequest);
         toast.success(`Flight ${formData.flightNumber} added to schedule.`);
       }
       setModalOpen(false);
       setEditingFlight(null);
       await loadFlights();
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(
+          error,
+          error.message ||
+            "Unable to save the flight. Check the details and try again.",
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -122,6 +92,8 @@ const AdminFlightsPage = () => {
       toast.info(`Flight ${deleteTarget.flightNumber} was cancelled.`);
       setDeleteTarget(null);
       await loadFlights();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to cancel this flight."));
     } finally {
       setIsDeleting(false);
     }
@@ -136,31 +108,37 @@ const AdminFlightsPage = () => {
       setSelectedIds(/* @__PURE__ */ new Set());
       setShowBulkDeleteModal(false);
       await loadFlights();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to cancel the selected flights."));
+      await loadFlights();
     } finally {
       setIsDeleting(false);
     }
   };
-  const handleBulkStatusUpdate = async (status) => {
-    for (const id of selectedIds) {
-      await flightService.updateFlight(id, { status });
+  const handleDelayFlight = async (flight) => {
+    try {
+      await flightService.delayFlight(flight.id, 15);
+      toast.success(`Flight ${flight.flightNumber} delayed by 15 minutes.`);
+      await loadFlights();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to delay this flight."));
     }
-    toast.success(`Updated ${selectedIds.size} flights to ${status}.`);
-    setSelectedIds(/* @__PURE__ */ new Set());
-    await loadFlights();
   };
   const handleExportCsv = () => {
     const exportData = filtered.map((f) => ({
       flightNumber: f.flightNumber,
-      origin: `${f.origin.city} (${f.origin.code})`,
-      destination: `${f.destination.city} (${f.destination.code})`,
+      origin: typeof f.origin === "string" ? f.origin : f.origin?.code || "",
+      destination: typeof f.destination === "string" ? f.destination : f.destination?.code || "",
       departureDate: f.departureDate,
       departureTime: f.departureTime,
       arrivalTime: f.arrivalTime,
-      aircraft: f.aircraft,
+      airline: f.airline,
+      aircraftCode: f.aircraftCode || f.aircraft,
+      fare: f.fare ?? f.priceEconomy,
+      businessFare: f.businessFare ?? f.priceBusiness ?? 0,
+      availableSeats: f.availableSeats ?? f.availableSeatsEconomy,
+      totalSeats: f.totalSeats,
       status: f.status,
-      priceEconomy: f.priceEconomy,
-      priceBusiness: f.priceBusiness,
-      availableSeatsEconomy: f.availableSeatsEconomy
     }));
     exportToCsv("TigerAirlines_Flights", exportData, [
       { key: "flightNumber", label: "Flight Number" },
@@ -169,16 +147,23 @@ const AdminFlightsPage = () => {
       { key: "departureDate", label: "Date" },
       { key: "departureTime", label: "Departure" },
       { key: "arrivalTime", label: "Arrival" },
-      { key: "aircraft", label: "Aircraft" },
+      { key: "airline", label: "Airline" },
+      { key: "aircraftCode", label: "Aircraft Code" },
       { key: "status", label: "Status" },
-{ key: "priceEconomy", label: "Economy (NGN)" },
-    { key: "priceBusiness", label: "Business (NGN)" },
-      { key: "availableSeatsEconomy", label: "Seats Left" }
+      { key: "fare", label: "Fare (NGN)" },
+      { key: "businessFare", label: "Business Fare (NGN)" },
+      { key: "availableSeats", label: "Available Seats" },
+      { key: "totalSeats", label: "Total Seats" },
     ]);
     toast.success("Flight manifest exported to CSV");
   };
   const filtered = flights.filter((f) => {
-    const matchesSearch = f.flightNumber.toLowerCase().includes(search.toLowerCase()) || f.origin.city.toLowerCase().includes(search.toLowerCase()) || f.destination.city.toLowerCase().includes(search.toLowerCase()) || f.aircraft.toLowerCase().includes(search.toLowerCase());
+    const searchText = search.toLowerCase();
+    const origin = typeof f.origin === "string" ? f.origin : f.origin?.code || "";
+    const destination = typeof f.destination === "string" ? f.destination : f.destination?.code || "";
+    const aircraftCode = f.aircraftCode || f.aircraft || "";
+    const matchesSearch = [f.flightNumber, origin, destination, f.airline, aircraftCode]
+      .some((value) => String(value || "").toLowerCase().includes(searchText));
     const matchesStatus = statusFilter === "ALL" || f.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -210,7 +195,7 @@ const AdminFlightsPage = () => {
             Flights Management
           </h2>
           <p className="text-xs text-muted mt-0.5">
-            Create, schedule, update status, and manage seating capacity for TigerAirlines flights.
+            Manage flight schedules, fares, seat capacity, delays, and cancellations.
           </p>
         </div>
 
@@ -243,7 +228,7 @@ const AdminFlightsPage = () => {
         <div className="relative flex-1 min-w-[240px]">
           <input
     type="text"
-    placeholder="Search by flight #, city, or aircraft..."
+    placeholder="Search flight #, airport code, airline, or aircraft..."
     value={search}
     onChange={(e) => {
       setSearch(e.target.value);
@@ -269,6 +254,7 @@ const AdminFlightsPage = () => {
             <option value="BOARDING">BOARDING</option>
             <option value="DEPARTED">DEPARTED</option>
             <option value="DELAYED">DELAYED</option>
+            <option value="CANCELLED">CANCELLED</option>
           </select>
         </div>
       </div>
@@ -283,21 +269,6 @@ const AdminFlightsPage = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-muted font-medium">Set Status:</span>
-            <button
-    type="button"
-    onClick={() => handleBulkStatusUpdate("BOARDING")}
-    className="px-2.5 py-1 bg-surface border border-border rounded-lg font-bold hover:bg-surface-muted cursor-pointer"
-  >
-              Boarding
-            </button>
-            <button
-    type="button"
-    onClick={() => handleBulkStatusUpdate("DELAYED")}
-    className="px-2.5 py-1 bg-surface border border-border rounded-lg font-bold hover:bg-surface-muted cursor-pointer"
-  >
-              Delayed
-            </button>
             <Button
     variant="danger"
     size="sm"
@@ -328,9 +299,9 @@ const AdminFlightsPage = () => {
                 <th className="py-3 px-4">Flight</th>
                 <th className="py-3 px-4">Route</th>
                 <th className="py-3 px-4">Departure / Arrival</th>
-                <th className="py-3 px-4">Aircraft</th>
-                <th className="py-3 px-4">Pricing</th>
-                <th className="py-3 px-4">Avail. Seats</th>
+                <th className="py-3 px-4">Airline / Aircraft</th>
+                <th className="py-3 px-4">Economy / Business</th>
+                <th className="py-3 px-4">Seats</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -366,10 +337,9 @@ const AdminFlightsPage = () => {
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-foreground">
-                        {f.origin.code} <ArrowRight size={12} className="inline text-muted" /> {f.destination.code}
-                      </div>
-                      <div className="text-[11px] text-muted">
-                        {f.origin.city} to {f.destination.city} ({f.duration})
+                        {typeof f.origin === "string" ? f.origin : f.origin?.code || "—"}
+                        {" "}<ArrowRight size={12} className="inline text-muted" />{" "}
+                        {typeof f.destination === "string" ? f.destination : f.destination?.code || "—"}
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
@@ -378,24 +348,17 @@ const AdminFlightsPage = () => {
                       </div>
                       <div className="text-[11px] text-muted">{f.departureDate}</div>
                     </td>
-                    <td className="py-3.5 px-4 font-medium text-foreground">
-                      {f.aircraft}
+                    <td className="py-3.5 px-4">
+                      <div className="font-medium text-foreground">{f.airline || "—"}</div>
+                      <div className="text-[11px] text-muted">{f.aircraftCode || f.aircraft || "No aircraft code"}</div>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-foreground">
+                      <div><span className="font-semibold">E:</span> {formatNaira(f.fare ?? f.priceEconomy ?? 0)}</div>
+                      <div className="text-muted"><span className="font-semibold">B:</span> {Number(f.businessFare ?? f.priceBusiness) > 0 ? formatNaira(f.businessFare ?? f.priceBusiness) : "Not offered"}</div>
                     </td>
                     <td className="py-3.5 px-4 font-mono">
-                      <div>
-                        Econ: <span className="font-bold text-foreground">{formatNaira(f.priceEconomy || 0)}</span>
-                      </div>
-                      <div className="text-muted">
-                        Biz: <span className="font-bold text-foreground">{formatNaira(f.priceBusiness || 0)}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono">
-                      <div>
-                        E: <span className="font-bold">{f.availableSeatsEconomy}</span>
-                      </div>
-                      <div className="text-muted">
-                        B: <span className="font-bold">{f.availableSeatsBusiness}</span>
-                      </div>
+                      <div><span className="font-bold">{f.availableSeats ?? f.availableSeatsEconomy ?? 0}</span> available</div>
+                      <div className="text-muted">of {f.totalSeats ?? "—"} total</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <Badge
@@ -406,6 +369,14 @@ const AdminFlightsPage = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+    onClick={() => handleDelayFlight(f)}
+    disabled={!f.active || f.status === "CANCELLED" || f.status === "DEPARTED"}
+    className="p-1.5 text-muted hover:text-amber-700 hover:bg-amber-50 rounded-lg transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+    title="Delay flight by 15 minutes"
+  >
+                          <Clock3 size={14} />
+                        </button>
                         <button
     onClick={() => {
       setEditingFlight(f);
@@ -420,6 +391,7 @@ const AdminFlightsPage = () => {
     onClick={() => setDeleteTarget({ id: f.id, flightNumber: f.flightNumber })}
     className="p-1.5 text-muted hover:text-red-600 hover:bg-primary/10 rounded-lg transition cursor-pointer"
     title="Cancel Flight"
+    disabled={!f.active || f.status === "CANCELLED"}
   >
                           <Ban size={14} />
                         </button>
@@ -469,7 +441,7 @@ const AdminFlightsPage = () => {
     isOpen={modalOpen}
     onClose={() => setModalOpen(false)}
     title={editingFlight ? `Edit Flight ${editingFlight.flightNumber}` : "Schedule New Flight"}
-    description="Configure flight numbers, airports, schedules, aircraft types, and passenger seating."
+    description="Edit the backend flight record fields. Status changes are handled through delay and cancellation actions."
     maxWidth="2xl"
   >
         <FlightForm

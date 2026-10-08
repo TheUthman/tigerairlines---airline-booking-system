@@ -1,4 +1,5 @@
 import apiClient, { extractData } from "./apiClient";
+import { normalizeAuthRole } from "../features/auth/authRoles";
 
 /**
  * Service handling all authentication endpoints mapped to Auth Service (`authservice`).
@@ -7,20 +8,28 @@ import apiClient, { extractData } from "./apiClient";
 class AuthService {
   normalizeAuthResponse(res) {
     const payload = extractData(res).data || res?.data || {};
-    const isAdmin = payload.role === "ADMIN" || payload.role === "ADMINISTRATOR";
+    const sourceUser =
+      payload.user && typeof payload.user === "object" ? payload.user : payload;
+    const role = normalizeAuthRole(payload.role || sourceUser.role);
+    const name =
+      [payload.firstName, payload.lastName].filter(Boolean).join(" ") ||
+      payload.name ||
+      [sourceUser.firstName, sourceUser.lastName].filter(Boolean).join(" ") ||
+      sourceUser.name ||
+      "";
+
     return {
       success: true,
       data: {
         token: payload.token || payload.accessToken,
         refreshToken: payload.refreshToken,
         user: {
-          id: payload.userId || payload.id || payload.user?.id,
-          name: [payload.firstName, payload.lastName].filter(Boolean).join(" ") || payload.name || payload.user?.name || "",
-          firstName: payload.firstName || payload.user?.firstName,
-          lastName: payload.lastName || payload.user?.lastName,
-          email: payload.email || payload.user?.email,
-          // The UI's existing guards use ADMINISTRATOR; the JWT still retains ADMIN.
-          role: isAdmin ? "ADMINISTRATOR" : (payload.role || "CUSTOMER")
+          id: payload.userId || payload.id || sourceUser.id,
+          name,
+          firstName: payload.firstName || sourceUser.firstName,
+          lastName: payload.lastName || sourceUser.lastName,
+          email: payload.email || sourceUser.email,
+          role,
         }
       }
     };
@@ -189,6 +198,8 @@ class AuthService {
       localStorage.removeItem("tiger_token");
       localStorage.removeItem("tiger_refresh_token");
       localStorage.removeItem("tiger_auth_user");
+      sessionStorage.removeItem("tiger_token");
+      sessionStorage.removeItem("tiger_refresh_token");
     } catch (e) {
       // ignore
     }

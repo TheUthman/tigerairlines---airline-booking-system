@@ -25,10 +25,6 @@ const RevenueChart = ({ data }) => {
               <stop offset="5%" stopColor={colors.primary} stopOpacity={0.4} />
               <stop offset="95%" stopColor={colors.primary} stopOpacity={0} />
             </linearGradient>
-            <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={colors.secondary} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={colors.secondary} stopOpacity={0} />
-            </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={colors.border} />
           <XAxis
@@ -73,16 +69,6 @@ const RevenueChart = ({ data }) => {
     strokeWidth={3}
     fillOpacity={1}
     fill="url(#colorRevenue)"
-  />
-          <Area
-    type="monotone"
-    dataKey="projected"
-    name="Revenue target (NGN)"
-    stroke={colors.secondary}
-    strokeWidth={2}
-    strokeDasharray="4 4"
-    fillOpacity={1}
-    fill="url(#colorProjected)"
   />
         </AreaChart>
       </ResponsiveContainer>

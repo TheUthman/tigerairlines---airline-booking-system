@@ -52,7 +52,7 @@ export const bookingService = {
   /**
    * POST /api/bookings
    * Create a new booking and lock a seat for 10 minutes (Redis lock).
-   * Expected payload: { flightId, passengerId, seatNumber, amount, ... }
+   * Expected payload: { flightId, passengerId, seatNumber, amount, cabinClass }
    * Returns newly created booking with status PENDING_PAYMENT.
    * @param {object} bookingData
    */
@@ -64,8 +64,8 @@ export const bookingService = {
   /**
    * POST /api/bookings/group
    * Create one pending booking per traveller (each seat locked independently).
-   * Expected payload: { flightId, travelers: [ { passengerId, seatNumber, amount } ] }
-   * @param {{ flightId: number|string, travelers: Array<{ passengerId: number|string, seatNumber: string, amount: number }> }} payload
+   * Expected payload: { flightId, travelers: [ { passengerId, seatNumber, amount, cabinClass } ] }
+   * @param {{ flightId: number|string, travelers: Array<{ passengerId: number|string, seatNumber: string, amount: number, cabinClass?: "ECONOMY"|"BUSINESS" }> }} payload
    */
   async createGroupBooking(payload) {
     const res = await apiClient.post("/bookings/group", payload);

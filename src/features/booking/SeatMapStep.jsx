@@ -12,7 +12,13 @@ const SeatMapStep = () => {
   const selectedSeats = useAppSelector((state) => state.booking.selectedSeats);
   const flight = useAppSelector((state) => state.booking.selectedFlight);
   const passengers = useAppSelector((state) => state.booking.passengers);
-  const [currentSeat, setCurrentSeat] = useState(selectedSeats[0] || "12A");
+  const cabinClass = useAppSelector(
+    (state) => state.booking.searchParams.cabinClass,
+  );
+  const isBusiness = cabinClass?.toUpperCase() === "BUSINESS";
+  const [currentSeat, setCurrentSeat] = useState(
+    selectedSeats[0] || (isBusiness ? "1C" : "4A"),
+  );
   const cabinRef = useRef(null);
   const [secondsRemaining, setSecondsRemaining] = useState(480);
   useEffect(() => {
@@ -69,6 +75,18 @@ const SeatMapStep = () => {
     { num: 14, type: "economy", letters: ["A", "B", "C", "", "D", "E", "F"] },
     { num: 15, type: "economy", letters: ["A", "B", "C", "", "D", "E", "F"] }
   ];
+  const cabinRows = rows.filter((row) =>
+    isBusiness ? row.type === "business" : row.type !== "business",
+  );
+  const currentSeatRow = Number(currentSeat.match(/^\d+/)?.[0]);
+  useEffect(() => {
+    const selectedSeatInCabin = cabinRows.some(
+      (row) => row.num === currentSeatRow,
+    );
+    if (!selectedSeatInCabin || occupiedSeats.has(currentSeat)) {
+      setCurrentSeat(isBusiness ? "1C" : "4A");
+    }
+  }, [cabinClass, selectedSeats, currentSeat, currentSeatRow, occupiedSeats]);
   useGSAP(
     () => {
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -146,7 +164,7 @@ const SeatMapStep = () => {
             </div>
             <div>
               <p className="text-[10px] uppercase font-bold text-primary tracking-wider">Selected Seat</p>
-              <p className="text-xs font-semibold text-foreground">Standard Economy</p>
+              <p className="text-xs font-semibold text-foreground">{cabinClass} Class</p>
             </div>
           </div>
         </div>
@@ -200,7 +218,7 @@ const SeatMapStep = () => {
     /* Seat grid */
   }
         <div className="space-y-2">
-          {rows.map((row) => <div key={row.num} className="flex items-center justify-between gap-1 text-xs">
+          {cabinRows.map((row) => <div key={row.num} className="flex items-center justify-between gap-1 text-xs">
               <span className="w-6 text-center font-bold text-muted font-mono text-[11px]">
                 {row.num}
               </span>

@@ -40,7 +40,6 @@ const DestinationsPage = routePage(() => import("../pages/DestinationsPage"));
 const OffersPage = routePage(() => import("../pages/OffersPage"));
 const LoginPage = routePage(() => import("../pages/LoginPage"));
 const RegisterPage = routePage(() => import("../pages/RegisterPage"));
-const VerifyEmailPage = routePage(() => import("../pages/VerifyEmailPage"));
 const ForgotPasswordPage = routePage(() => import("../pages/ForgotPasswordPage"));
 const StyleGuidePage = routePage(() => import("../pages/StyleGuidePage"));
 const AdminLoginPage = routePage(() => import("../pages/AdminLoginPage"));
@@ -109,7 +108,6 @@ const AppRoutes = () => {
   }
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
-        <Route path="verify-email" element={<VerifyEmailPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
 
         {
