@@ -49,7 +49,6 @@ const SearchResultsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [maxPrice, setMaxPrice] = useState(15e5);
-  const [selectedStops, setSelectedStops] = useState("all");
   const [selectedAirline, setSelectedAirline] = useState("all");
   const [sortBy, setSortBy] = useState("price");
   const [expandedFlightId, setExpandedFlightId] = useState(null);
@@ -58,34 +57,6 @@ const SearchResultsPage = () => {
   const destParam = searchParams.get("to") || "ABV";
   const cabinParam = searchParams.get("class") || "Economy";
   const departDateParam = searchParams.get("depart") || "2026-10-15";
-  const baseDate = new Date(departDateParam || "2026-10-15");
-  const flexibleDates = [-3, -2, -1, 0, 1, 2, 3].map((offset) => {
-    const d = new Date(baseDate);
-    d.setDate(d.getDate() + offset);
-    const dateStr = d.toISOString().split("T")[0];
-    const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
-    const monthDay = d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    const priceOffset =
-      offset === 0
-        ? 55e3
-        : offset === -2
-          ? 45e3
-          : offset === 1
-            ? 62e3
-            : 5e4 + offset * 3e3;
-    return {
-      offset,
-      dateStr,
-      dayName,
-      monthDay,
-      price: priceOffset,
-      isCheapest: offset === -2,
-      isSelected: offset === 0,
-    };
-  });
   useEffect(() => {
     let isMounted = true;
 
@@ -140,11 +111,9 @@ const SearchResultsPage = () => {
   ].sort((first, second) => first.localeCompare(second));
   const activeFilterCount =
     Number(maxPrice < 15e5) +
-    Number(selectedStops !== "all") +
     Number(selectedAirline !== "all");
   const resetFilters = () => {
     setMaxPrice(15e5);
-    setSelectedStops("all");
     setSelectedAirline("all");
   };
 
@@ -155,8 +124,6 @@ const SearchResultsPage = () => {
         : flight.fare ?? flight.priceEconomy;
       if (!Number.isFinite(Number(price)) || Number(price) <= 0) return false;
       if (price > maxPrice) return false;
-      if (selectedStops === "direct" && flight.stops > 0) return false;
-      if (selectedStops === "1stop" && flight.stops === 0) return false;
       if (selectedAirline !== "all" && flight.airline !== selectedAirline)
         return false;
       return true;
@@ -224,38 +191,6 @@ const SearchResultsPage = () => {
           </button>
         </div>
 
-        {/* ±3 Days Price Flexibility Strip */}
-        <div className="overflow-x-auto rounded-2xl border border-border bg-surface p-4 shadow-sm">
-          <div className="flex items-center gap-2 min-w-[650px] justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted pl-2 shrink-0">
-              ±3 Days Flexibility:
-            </span>
-            {flexibleDates.map((item) => (
-              <button
-                key={item.offset}
-                type="button"
-                className={`relative flex-1 rounded-xl border px-3 py-2.5 text-center transition-colors ${item.isSelected ? "border-primary bg-primary text-on-primary shadow-sm" : "border-border bg-background text-foreground"}`}
-              >
-                {item.isCheapest && (
-                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-secondary text-on-secondary font-black text-[9px] uppercase px-1.5 py-0.2 rounded shadow-2xs">
-                    Cheapest
-                  </span>
-                )}
-                <p
-                  className={`text-xs font-semibold ${item.isSelected ? "text-on-primary" : "text-foreground"}`}
-                >
-                  {item.dayName}, {item.monthDay}
-                </p>
-                <p
-                  className={`mt-0.5 font-mono text-sm font-semibold ${item.isSelected ? "text-on-primary" : "text-primary-dark dark:text-primary"}`}
-                >
-                  {formatNaira(item.price)}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-
           {/* Main Content Layout */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
             <aside className="hidden lg:col-span-1 lg:block">
@@ -263,8 +198,6 @@ const SearchResultsPage = () => {
                 <FlightFiltersPanel
                   maxPrice={maxPrice}
                   setMaxPrice={setMaxPrice}
-                  selectedStops={selectedStops}
-                  setSelectedStops={setSelectedStops}
                   selectedAirline={selectedAirline}
                   setSelectedAirline={setSelectedAirline}
                   airlineOptions={airlineOptions}
@@ -335,7 +268,7 @@ const SearchResultsPage = () => {
                     <div className="space-y-2 rounded-xl border border-warning/25 bg-warning/5 p-5 text-foreground">
                   <div className="flex items-center gap-2 text-primary font-black text-sm">
                     <AlertCircle size={18} />
-                    <span>No Direct Flights Found for This Search</span>
+                    <span>No Flights Found for This Search</span>
                   </div>
                   <p className="text-sm leading-relaxed text-muted">
                     No flights match the current filters. Adjust the filters or review other flights already listed in the schedule.
@@ -458,11 +391,6 @@ const SearchResultsPage = () => {
                               />
                               <div className="h-0.5 bg-surface-muted flex-1" />
                             </div>
-                            <span className="text-[10px] font-bold text-emerald-600 mt-0.5">
-                              {flight.stops === 0
-                                ? "Non-stop"
-                                : `${flight.stops} Stop`}
-                            </span>
                           </div>
 
                           <div className="text-right">
@@ -619,8 +547,6 @@ const SearchResultsPage = () => {
               <FlightFiltersPanel
                 maxPrice={maxPrice}
                 setMaxPrice={setMaxPrice}
-                selectedStops={selectedStops}
-                setSelectedStops={setSelectedStops}
                 selectedAirline={selectedAirline}
                 setSelectedAirline={setSelectedAirline}
                 airlineOptions={airlineOptions}

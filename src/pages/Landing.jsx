@@ -295,7 +295,7 @@ const Landing = () => {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('/tiger-airlines-hero.png')",
+            backgroundImage: "url('https://images.unsplash.com/photo-1517999349371-c43520457b23?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')",
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />

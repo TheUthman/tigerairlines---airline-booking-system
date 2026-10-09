@@ -3,8 +3,6 @@ import { formatNaira } from "../../utils/formatNaira";
 const FlightFiltersPanel = ({
   maxPrice,
   setMaxPrice,
-  selectedStops,
-  setSelectedStops,
   selectedAirline,
   setSelectedAirline,
   airlineOptions,
@@ -52,33 +50,6 @@ const FlightFiltersPanel = ({
           <span>₦1,500,000</span>
         </div>
       </div>
-
-      <fieldset>
-        <legend className="mb-3 text-sm font-medium text-foreground">Stops</legend>
-        <div className="space-y-2.5">
-          {[
-            { value: "all", label: "All flights" },
-            { value: "direct", label: "Non-stop only" },
-            { value: "1stop", label: "1 stop" },
-          ].map((option) => {
-            const optionId = `${idPrefix}-stops-${option.value}`;
-            return (
-              <label key={option.value} htmlFor={optionId} className="flex min-h-8 cursor-pointer items-center gap-2.5 text-sm text-foreground">
-                <input
-                  id={optionId}
-                  type="radio"
-                  name={`${idPrefix}-stops`}
-                  value={option.value}
-                  checked={selectedStops === option.value}
-                  onChange={() => setSelectedStops(option.value)}
-                  className="h-4 w-4 accent-primary"
-                />
-                {option.label}
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
 
       {airlineOptions.length > 0 && (
         <div>
