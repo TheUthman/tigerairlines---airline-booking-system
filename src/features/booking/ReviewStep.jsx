@@ -82,7 +82,11 @@ const ReviewStep = () => {
                 <div className="w-12 border-t border-border" />
               </div>
               <span className="text-[10px] font-bold text-muted">
-                {flight?.stops === 0 ? "Non-Stop" : `${flight?.stops} Stop`}
+                {flight?.stops === 0
+                  ? "Non-stop"
+                  : flight?.stops != null
+                    ? `${flight.stops} stop${Number(flight.stops) === 1 ? "" : "s"}`
+                    : "Route details unavailable"}
               </span>
             </div>
 
