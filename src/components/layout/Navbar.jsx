@@ -153,8 +153,9 @@ const Navbar = ({ onOpenAlertsModal }) => {
             <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-border bg-white shadow-sm">
               <img
                 src="/logo.svg"
-                className="h-9 w-9 object-contain"
+                className="h-10 w-10 object-contain"
                 alt=""
+                style={{ transform: "rotate(180deg)" }}
               />
             </span>
             <span className="hidden items-baseline tracking-tight sm:flex">

@@ -9,13 +9,12 @@ import {
   EyeOff,
   ArrowRight,
   AlertCircle,
-  Shield,
   Plane,
-  CheckCircle2,
 } from "lucide-react";
 import authService from "../services/authService";
-import { useAppDispatch, useAppSelector } from "../app/store";
+import { useAppDispatch } from "../app/store";
 import { loginSuccess } from "../features/auth/authSlice";
+import { normalizeAuthRole } from "../features/auth/authRoles";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { useToast } from "../components/ui/Toast";
@@ -25,11 +24,6 @@ const LoginPage = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const toast = useToast();
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const isStaff =
-    isAuthenticated &&
-    user &&
-    (user.role === "ADMINISTRATOR" || user.role === "STAFF");
   const containerRef = useRef(null);
   const initialEmail =
     location.state?.email || localStorage.getItem("tiger_remember_email") || "";
@@ -71,8 +65,19 @@ const LoginPage = () => {
     try {
       const res = await authService.login({ email, password, rememberMe });
       dispatch(loginSuccess(res.data));
-      toast.success(`Welcome back, ${res.data.user.name}!`);
-      const targetDestination = location.state?.from?.pathname || "/my-trips";
+      const role = normalizeAuthRole(res.data.user?.role);
+      const targetDestination =
+        role === "ADMINISTRATOR"
+          ? "/admin"
+          : role === "STAFF"
+            ? "/staff"
+            : location.state?.from?.pathname &&
+                !["/admin", "/staff"].some((path) =>
+                  location.state.from.pathname.startsWith(path),
+                )
+              ? location.state.from.pathname
+              : "/my-trips";
+      toast.success(`Welcome back, ${res.data.user.name || "traveler"}!`);
       navigate(targetDestination, { replace: true });
     } catch (err) {
       setErrorMsg(
@@ -100,23 +105,9 @@ const LoginPage = () => {
             Welcome Back
           </h1>
           <p className="text-xs text-muted">
-            Sign in to access your flight bookings, boarding passes, and
-            TigerMiles.
+            Sign in to access the services available to your account.
           </p>
         </div>
-
-        {/* Staff Session Active Notice */}
-        {isStaff && user && (
-          <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Shield size={15} className="text-amber-700 shrink-0" />
-              <span>
-                Operations account active (<strong>{user.name}</strong>). Sign
-                in below to switch to customer portal.
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Error Alert */}
         {errorMsg && (

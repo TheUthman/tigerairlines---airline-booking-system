@@ -158,6 +158,8 @@ const ManageBookingPage = () => {
     switch (status) {
       case "CONFIRMED":
         return <Badge variant="success">Confirmed & Ticketed</Badge>;
+      case "CHECKED_IN":
+        return <Badge variant="success">Checked in</Badge>;
       case "CANCELLED":
         return <Badge variant="primary">Cancelled</Badge>;
       case "PENDING_PAYMENT":
@@ -485,7 +487,7 @@ const ManageBookingPage = () => {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={booking.status === "CANCELLED"}
+                    disabled={["CANCELLED", "CHECKED_IN"].includes(booking.status)}
                     onClick={() => setShowExtrasModal(true)}
                     className="gap-1.5 font-bold"
                   >
@@ -504,7 +506,7 @@ const ManageBookingPage = () => {
                   </Button>
                 </div>
 
-                {booking.status !== "CANCELLED" && (
+                {!["CANCELLED", "CHECKED_IN"].includes(booking.status) && (
                   <Button
                     type="button"
                     variant="danger"

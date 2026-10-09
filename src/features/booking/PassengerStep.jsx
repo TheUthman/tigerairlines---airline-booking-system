@@ -1,13 +1,19 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { User, Mail, Phone, FileText, Globe, Calendar } from "lucide-react";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { useAppDispatch, useAppSelector } from "../../app/store";
 import { setPassengers, setBookingStep } from "./bookingSlice";
+import passengerService from "../../services/passengerService";
+import { getApiErrorMessage } from "../../services/apiClient";
+import { useToast } from "../../components/ui/Toast";
 const PassengerStep = () => {
   const dispatch = useAppDispatch();
+  const toast = useToast();
   const currentPassengers = useAppSelector((state) => state.booking.passengers);
   const user = useAppSelector((state) => state.auth.user);
+  const [isSaving, setIsSaving] = useState(false);
   const isCustomer = user?.role === "CUSTOMER";
   const initial = currentPassengers[0] || {
     firstName: isCustomer && user ? user.name.split(" ")[0] : "",
@@ -33,22 +39,64 @@ const PassengerStep = () => {
       dateOfBirth: initial.dateOfBirth || "",
     },
   });
-  const onSubmit = (data) => {
-    dispatch(
-      setPassengers([
-        {
-          id: "p-1",
-          firstName: data.firstName,
-          lastName: data.lastName,
-          passportNumber: data.passportNumber,
-          dateOfBirth: data.dateOfBirth,
-          nationality: data.nationality,
-          seat: currentPassengers[0]?.seat || "12A",
-          ticketNumber: "",
-        },
-      ]),
-    );
-    dispatch(setBookingStep(2));
+  const onSubmit = async (data) => {
+    setIsSaving(true);
+    try {
+      const response = await passengerService.getMyPassengers();
+      const savedPassengers = Array.isArray(response.data) ? response.data : [];
+      const normalize = (value) => value?.trim().toLocaleLowerCase() || "";
+      const existingPassenger = savedPassengers.find(
+        (passenger) =>
+          normalize(passenger.firstName) === normalize(data.firstName) &&
+          normalize(passenger.lastName) === normalize(data.lastName) &&
+          passenger.dateOfBirth === data.dateOfBirth,
+      );
+      const passengerProfile =
+        existingPassenger ||
+        (
+          await passengerService.createPassenger({
+            firstName: data.firstName,
+            lastName: data.lastName,
+            dateOfBirth: data.dateOfBirth,
+            phone: data.phone,
+            passportNumber: data.passportNumber,
+            nationality: data.nationality,
+            savedTraveler: true,
+          })
+        ).data;
+      const passengerId = Number(passengerProfile?.id);
+      if (!Number.isSafeInteger(passengerId) || passengerId <= 0) {
+        throw new Error("The passenger service did not return a valid passenger ID.");
+      }
+
+      dispatch(
+        setPassengers([
+          {
+            id: passengerId,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            phone: data.phone,
+            passportNumber: data.passportNumber,
+            dateOfBirth: data.dateOfBirth,
+            nationality: data.nationality,
+            seat: currentPassengers[0]?.seat || "12A",
+            ticketNumber: "",
+          },
+        ]),
+      );
+      dispatch(setBookingStep(2));
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(
+          error,
+          "Unable to save the passenger profile. Please try again.",
+        ),
+        "Passenger Details Not Saved",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
   return (
     <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-sm border border-border">
@@ -143,9 +191,10 @@ const PassengerStep = () => {
             type="submit"
             variant="accent"
             size="lg"
+            isLoading={isSaving}
             className="px-8 font-bold"
           >
-            Continue to Seat Selection →
+            {isSaving ? "Saving passenger..." : "Continue to Seat Selection →"}
           </Button>
         </div>
       </form>

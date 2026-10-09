@@ -377,6 +377,8 @@ Updated passenger with the new `frequentFlyerPoints`.
 | `POST` | `/api/bookings/group` | Authenticated | Create one pending booking per traveller. |
 | `POST` | `/api/bookings/{id}/upgrade` | Authenticated | Change a pending booking's seat and add the price difference. |
 | `POST` | `/api/bookings/{id}/cancel` | Authenticated | Cancel a pending booking. |
+| `GET` | `/api/bookings/staff/lookup?pnr={pnr}` | Staff or administrator | Look up booking and flight reference details by PNR. |
+| `POST` | `/api/bookings/{id}/check-in` | Staff or administrator | Check in a confirmed booking and persist its check-in time. |
 
 ### Create Booking
 

@@ -39,7 +39,7 @@ const getInitialAuthState = () => {
       const savedUser = JSON.parse(savedUserRaw);
       const role = normalizeAuthRole(savedUser.role);
       const user = { ...savedUser, role };
-      const isAdmin = role === "ADMINISTRATOR" || role === "STAFF";
+      const isAdmin = role === "ADMINISTRATOR";
       return {
         user,
         isAuthenticated: true,
@@ -87,7 +87,7 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.isAuthenticated = true;
       state.role = user.role;
-      state.isAdmin = user.role === "ADMINISTRATOR" || user.role === "STAFF";
+      state.isAdmin = user.role === "ADMINISTRATOR";
       state.error = null;
       try {
         localStorage.removeItem("tiger_logged_out");

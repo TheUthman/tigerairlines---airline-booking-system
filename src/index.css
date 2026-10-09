@@ -167,6 +167,48 @@ body {
   animation: indeterminate-progress 1.1s ease-in-out infinite;
 }
 
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #boarding-pass-print-area,
+  #boarding-pass-print-area * {
+    visibility: visible !important;
+  }
+
+  #boarding-pass-print-area {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #boarding-pass-print-area .boarding-pass-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important;
+    border-top: 0 !important;
+  }
+
+  #boarding-pass-print-area .boarding-pass-main {
+    border-right: 2px dashed var(--border) !important;
+    border-bottom: 0 !important;
+  }
+
+  #boarding-pass-print-area,
+  #boarding-pass-print-area * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
 @keyframes route-progress {
   0% {
     transform: scaleX(0);

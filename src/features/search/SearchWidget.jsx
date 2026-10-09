@@ -11,8 +11,17 @@ import {
 import { useAppDispatch, useAppSelector } from "../../app/store";
 import { setSearchParams } from "../booking/bookingSlice";
 import flightService from "../../services/flightService";
+import { getApiErrorMessage } from "../../services/apiClient";
 
 const STORAGE_RECENT_KEY = "tigerairlines_recent_searches";
+
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const SearchWidget = () => {
   const navigate = useNavigate();
@@ -21,59 +30,98 @@ const SearchWidget = () => {
   const [tripType, setTripType] = useState(
     currentParams.tripType || "roundTrip",
   );
-  const [fromCode, setFromCode] = useState(currentParams.originCode || "LOS");
-  const [toCode, setToCode] = useState(currentParams.destinationCode || "ABV");
-  const [departDate, setDepartDate] = useState(
-    currentParams.departDate || "2026-10-15",
-  );
-  const [returnDate, setReturnDate] = useState(
-    currentParams.returnDate || "2026-10-22",
-  );
+  const [fromCode, setFromCode] = useState(currentParams.originCode || "");
+  const [toCode, setToCode] = useState(currentParams.destinationCode || "");
+  const [departDate, setDepartDate] = useState(currentParams.departDate || "");
+  const [returnDate, setReturnDate] = useState(currentParams.returnDate || "");
   const [cabinClass, setCabinClass] = useState(
     currentParams.cabinClass || "Economy",
   );
-  const [, setAirports] = useState([]);
+  const [airports, setAirports] = useState([]);
+  const [airportsLoading, setAirportsLoading] = useState(true);
+  const [airportsError, setAirportsError] = useState("");
+  const [searchError, setSearchError] = useState("");
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_RECENT_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const searches = JSON.parse(saved);
+        if (Array.isArray(searches)) {
+          return searches.filter(
+            (search) =>
+              search &&
+              typeof search.id === "string" &&
+              typeof search.from === "string" &&
+              typeof search.to === "string" &&
+              typeof search.departDate === "string" &&
+              typeof search.tripType === "string" &&
+              typeof search.label === "string",
+          );
+        }
+      }
     } catch (error) {
       console.error(error);
     }
 
-    return [
-      {
-        id: "1",
-        from: "LOS",
-        to: "ABV",
-        departDate: "2026-10-15",
-        tripType: "roundTrip",
-        label: "Lagos (LOS) → Abuja (ABV)",
-      },
-      {
-        id: "2",
-        from: "LOS",
-        to: "DXB",
-        departDate: "2026-10-18",
-        tripType: "oneWay",
-        label: "Lagos (LOS) → Dubai (DXB)",
-      },
-      {
-        id: "3",
-        from: "ABV",
-        to: "LHR",
-        departDate: "2026-10-20",
-        tripType: "roundTrip",
-        label: "Abuja (ABV) → London (LHR)",
-      },
-    ];
+    return [];
   });
 
   useEffect(() => {
-    flightService.getAirports().then((response) => {
-      if (response.data) setAirports(response.data);
-    });
-  }, []);
+    let isCurrent = true;
+
+    const loadAirports = async () => {
+      setAirportsLoading(true);
+      setAirportsError("");
+
+      try {
+        const response = await flightService.getAirports();
+        const records = Array.isArray(response?.data) ? response.data : [];
+        const availableAirports = records
+          .filter(
+            (airport) =>
+              typeof airport?.code === "string" &&
+              /^[A-Z]{3}$/i.test(airport.code.trim()),
+          )
+          .sort((first, second) =>
+            `${first.city || first.name || first.code}`.localeCompare(
+              `${second.city || second.name || second.code}`,
+            ),
+          );
+
+        if (!isCurrent) return;
+
+        setAirports(availableAirports);
+        const origin =
+          availableAirports.find(
+            (airport) =>
+              airport.code.toUpperCase() === currentParams.originCode,
+          );
+        const destination =
+          availableAirports.find(
+            (airport) =>
+              airport.code.toUpperCase() === currentParams.destinationCode &&
+              airport.code.toUpperCase() !== origin?.code.toUpperCase(),
+          );
+
+        setFromCode(origin?.code.toUpperCase() || "");
+        setToCode(destination?.code.toUpperCase() || "");
+      } catch (error) {
+        if (isCurrent) {
+          setAirports([]);
+          setAirportsError(
+            getApiErrorMessage(error, "Unable to load registered airports."),
+          );
+        }
+      } finally {
+        if (isCurrent) setAirportsLoading(false);
+      }
+    };
+
+    loadAirports();
+    return () => {
+      isCurrent = false;
+    };
+  }, [currentParams.destinationCode, currentParams.originCode]);
 
   const saveRecentSearch = (from, to, date, type) => {
     const newItem = {
@@ -99,6 +147,20 @@ const SearchWidget = () => {
 
   const handleSearch = (event) => {
     event.preventDefault();
+    setSearchError("");
+    if (!fromCode || !toCode || fromCode === toCode) {
+      setSearchError("Select two different registered airports.");
+      return;
+    }
+    if (!departDate) {
+      setSearchError("Select a departure date.");
+      return;
+    }
+    if (tripType !== "oneWay" && returnDate && returnDate < departDate) {
+      setSearchError("The return date cannot be before the departure date.");
+      return;
+    }
+
     saveRecentSearch(fromCode, toCode, departDate, tripType);
     dispatch(
       setSearchParams({
@@ -147,6 +209,14 @@ const SearchWidget = () => {
     { value: "oneWay", label: "One way" },
     { value: "direct", label: "Direct non-stop" },
   ];
+  const availableAirportCodes = new Set(
+    airports.map((airport) => airport.code.toUpperCase()),
+  );
+  const validRecentSearches = recentSearches.filter(
+    (search) =>
+      availableAirportCodes.has(search.from.toUpperCase()) &&
+      availableAirportCodes.has(search.to.toUpperCase()),
+  );
 
   return (
     <div className="relative z-30 mx-auto w-full max-w-7xl px-4 sm:px-6">
@@ -165,6 +235,21 @@ const SearchWidget = () => {
         </div>
 
         <form onSubmit={handleSearch}>
+          {airportsError && (
+            <p role="alert" className="mb-4 rounded-lg border border-danger/25 bg-danger/5 px-3 py-2 text-sm text-danger">
+              {airportsError}
+            </p>
+          )}
+          {!airportsLoading && !airportsError && airports.length === 0 && (
+            <p role="status" className="mb-4 rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm text-muted">
+              No registered airports are available yet. Add airports in Airport Management before searching.
+            </p>
+          )}
+          {searchError && (
+            <p role="alert" className="mb-4 rounded-lg border border-danger/25 bg-danger/5 px-3 py-2 text-sm text-danger">
+              {searchError}
+            </p>
+          )}
           <fieldset className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2">
             <legend className="sr-only">Journey type</legend>
             {tripOptions.map((option) => (
@@ -202,15 +287,19 @@ const SearchWidget = () => {
                   id="origin-select"
                   value={fromCode}
                   onChange={(event) => setFromCode(event.target.value)}
+                  disabled={airportsLoading || airports.length === 0}
                   className="w-full cursor-pointer appearance-none truncate bg-transparent pr-7 text-sm font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <option value="LOS">Lagos, Nigeria (LOS)</option>
-                  <option value="ABV">Abuja, Nigeria (ABV)</option>
-                  <option value="PHC">Port Harcourt, Nigeria (PHC)</option>
-                  <option value="KAN">Kano, Nigeria (KAN)</option>
-                  <option value="DXB">Dubai, UAE (DXB)</option>
-                  <option value="LHR">London, UK (LHR)</option>
-                  <option value="JNB">Johannesburg, SA (JNB)</option>
+                  <option value="">
+                    {airportsLoading ? "Loading airports…" : "Select airport"}
+                  </option>
+                  {airports.map((airport) => (
+                    <option key={airport.id ?? airport.code} value={airport.code.toUpperCase()}>
+                      {[airport.city, airport.country, `(${airport.code.toUpperCase()})`]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown
                   size={14}
@@ -253,15 +342,22 @@ const SearchWidget = () => {
                   id="dest-select"
                   value={toCode}
                   onChange={(event) => setToCode(event.target.value)}
+                  disabled={airportsLoading || airports.length < 2}
                   className="w-full cursor-pointer appearance-none truncate bg-transparent pr-7 text-sm font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <option value="ABV">Abuja, Nigeria (ABV)</option>
-                  <option value="LOS">Lagos, Nigeria (LOS)</option>
-                  <option value="PHC">Port Harcourt, Nigeria (PHC)</option>
-                  <option value="KAN">Kano, Nigeria (KAN)</option>
-                  <option value="DXB">Dubai, UAE (DXB)</option>
-                  <option value="LHR">London, UK (LHR)</option>
-                  <option value="JNB">Johannesburg, SA (JNB)</option>
+                  <option value="">
+                    {airportsLoading ? "Loading airports…" : "Select airport"}
+                  </option>
+                  {airports.map((airport) => (
+                    <option
+                      key={airport.id ?? airport.code}
+                      value={airport.code.toUpperCase()}
+                    >
+                      {[airport.city, airport.country, `(${airport.code.toUpperCase()})`]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown
                   size={14}
@@ -282,7 +378,8 @@ const SearchWidget = () => {
                 <input
                   id="depart-date-input"
                   type="date"
-                  value={departDate}
+                    min={getTodayDate()}
+                    value={departDate}
                   onChange={(event) => setDepartDate(event.target.value)}
                   className="w-full cursor-pointer bg-transparent text-sm font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 />
@@ -307,6 +404,7 @@ const SearchWidget = () => {
                 <input
                   id="return-date-input"
                   type="date"
+                  min={departDate || getTodayDate()}
                   disabled={tripType === "oneWay"}
                   value={returnDate}
                   onChange={(event) => setReturnDate(event.target.value)}
@@ -343,6 +441,7 @@ const SearchWidget = () => {
               </div>
               <button
                 type="submit"
+                disabled={airportsLoading || airports.length < 2}
                 className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary shadow-sm transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface lg:flex"
                 aria-label="Search flights"
                 title="Search flights"
@@ -354,19 +453,20 @@ const SearchWidget = () => {
 
           <button
             type="submit"
+            disabled={airportsLoading || airports.length < 2}
             className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface lg:hidden"
           >
             <Search size={17} aria-hidden="true" />
             Search flights
           </button>
 
-          {recentSearches.length > 0 && (
+          {validRecentSearches.length > 0 && (
             <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
               <span className="inline-flex items-center gap-1.5 pr-1 text-xs font-medium text-muted">
                 <History size={14} aria-hidden="true" />
                 Recent searches
               </span>
-              {recentSearches.map((search) => (
+              {validRecentSearches.map((search) => (
                 <button
                   key={search.id}
                   type="button"

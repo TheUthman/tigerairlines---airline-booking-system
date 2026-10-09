@@ -23,6 +23,23 @@ import Badge from "../components/ui/Badge";
 import { FlightCardSkeleton } from "../components/ui/Skeleton";
 import { formatNaira } from "../utils/formatNaira";
 import FlightFiltersPanel from "../features/search/FlightFiltersPanel";
+
+const getFareOptions = (flight) => {
+  const economyFare = flight.fare ?? flight.priceEconomy;
+  const businessFare = flight.businessFare ?? flight.priceBusiness;
+
+  return [
+    ...(Number(economyFare) > 0
+      ? [{ cabin: "Economy", fare: economyFare, available: true }]
+      : []),
+    {
+      cabin: "Business",
+      fare: businessFare,
+      available: Number(businessFare) > 0,
+    },
+  ];
+};
+
 const SearchResultsPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -353,22 +370,27 @@ const SearchResultsPage = () => {
                           </p>
                           <p className="text-xs text-muted">{f.arrivalTime}</p>
                         </div>
-                        <div>
-                          <p className="font-mono text-xl font-semibold text-foreground">
-                            {formatNaira(
-                              cabinParam.toUpperCase() === "BUSINESS"
-                                ? f.businessFare ?? f.priceBusiness
-                                : f.fare ?? f.priceEconomy,
-                            )}
-                          </p>
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => handleSelectFareTier(f, cabinParam)}
-                            className="mt-1"
-                          >
-                            Select {cabinParam}
-                          </Button>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {getFareOptions(f).map(({ cabin, fare, available }) => (
+                              <div key={cabin} className="text-right">
+                                <p className="font-mono text-lg font-semibold text-foreground">
+                                  {available
+                                    ? formatNaira(fare)
+                                    : "Not offered"}
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant={cabin === "Business" ? "accent" : "primary"}
+                                  disabled={!available}
+                                  onClick={() => handleSelectFareTier(f, cabin)}
+                                  className="mt-1"
+                                >
+                                  {available
+                                    ? `Select ${cabin}`
+                                    : `${cabin} unavailable`}
+                                </Button>
+                              </div>
+                            ))}
                         </div>
                       </div>
                     </div>
@@ -514,18 +536,8 @@ const SearchResultsPage = () => {
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          {[
-                            {
-                              cabin: "Economy",
-                              fare: flight.fare ?? flight.priceEconomy,
-                            },
-                            {
-                              cabin: "Business",
-                              fare: flight.businessFare ?? flight.priceBusiness,
-                            },
-                          ]
-                            .filter(({ fare }) => Number(fare) > 0)
-                            .map(({ cabin, fare }) => (
+                          {getFareOptions(flight).map(
+                            ({ cabin, fare, available }) => (
                               <div
                                 key={cabin}
                                 className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-background p-4"
@@ -538,7 +550,9 @@ const SearchResultsPage = () => {
                                     Published fare per passenger
                                   </p>
                                   <p className="mt-3 font-mono text-xl font-black text-foreground">
-                                    {formatNaira(fare)}
+                                    {available
+                                      ? formatNaira(fare)
+                                      : "Not offered"}
                                   </p>
                                 </div>
                                 <Button
@@ -546,15 +560,19 @@ const SearchResultsPage = () => {
                                     cabin === "Business" ? "accent" : "primary"
                                   }
                                   size="sm"
+                                  disabled={!available}
                                   onClick={() =>
                                     handleSelectFareTier(flight, cabin)
                                   }
                                   className="w-full font-bold"
                                 >
-                                  Choose {cabin}
+                                  {available
+                                    ? `Choose ${cabin}`
+                                    : `${cabin} unavailable`}
                                 </Button>
                               </div>
-                            ))}
+                            ),
+                          )}
                         </div>
                       </div>
                     )}

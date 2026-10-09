@@ -1,9 +1,21 @@
 import { createSlice } from "@reduxjs/toolkit";
+
+const toDateInputValue = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const today = new Date();
+const returnDate = new Date(today);
+returnDate.setDate(returnDate.getDate() + 7);
+
 const initialSearchParams = {
-  originCode: "LOS",
-  destinationCode: "ABV",
-  departDate: "2026-10-15",
-  returnDate: "2026-10-22",
+  originCode: "",
+  destinationCode: "",
+  departDate: toDateInputValue(today),
+  returnDate: toDateInputValue(returnDate),
   tripType: "roundTrip",
   cabinClass: "Economy",
   passengersCount: 1,

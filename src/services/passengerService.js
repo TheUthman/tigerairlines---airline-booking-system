@@ -57,6 +57,16 @@ export const passengerService = {
   },
 
   /**
+   * POST /api/passengers/staff/manifest
+   * Return names only for passengers on a staff flight manifest.
+   * @param {Array<number|string>} ids
+   */
+  async getStaffManifestPassengers(ids) {
+    const res = await apiClient.post("/passengers/staff/manifest", ids);
+    return extractData(res, []);
+  },
+
+  /**
    * GET /api/passengers/{id}
    * Get passenger profile details by ID.
    * @param {number|string} id

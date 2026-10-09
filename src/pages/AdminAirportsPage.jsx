@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 import flightService from "../services/flightService";
 import Button from "../components/ui/Button";
-import Badge from "../components/ui/Badge";
 import Modal from "../components/ui/Modal";
 import Input from "../components/ui/Input";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
@@ -32,9 +31,6 @@ const AdminAirportsPage = () => {
       name: "Kuala Lumpur International Airport",
       city: "Kuala Lumpur",
       country: "Malaysia",
-      timezone: "Asia/Kuala_Lumpur",
-      terminals: 2,
-      status: "ACTIVE"
     });
     setModalOpen(true);
   };
@@ -46,9 +42,6 @@ const AdminAirportsPage = () => {
         name: data.name,
         city: data.city,
         country: data.country,
-        timezone: data.timezone,
-        terminals: Number(data.terminals),
-        status: data.status
       });
       setModalOpen(false);
       await loadAirports();
@@ -75,7 +68,7 @@ const AdminAirportsPage = () => {
             Airports & Destination Hubs
           </h2>
           <p className="text-xs text-muted mt-0.5">
-            Manage airport IATA codes, international terminals, and timezones.
+            Manage airport IATA codes, names, cities, and countries.
           </p>
         </div>
 
@@ -93,15 +86,12 @@ const AdminAirportsPage = () => {
                 <th className="py-3 px-4">Airport Name</th>
                 <th className="py-3 px-4">City</th>
                 <th className="py-3 px-4">Country</th>
-                <th className="py-3 px-4">Timezone</th>
-                <th className="py-3 px-4">Terminals</th>
-                <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted">
+                  <td colSpan={5} className="py-12 text-center text-muted">
                     Loading airports...
                   </td>
                 </tr> : airports.map((apt) => <tr key={apt.id} className="hover:bg-surface-muted/70 transition">
@@ -111,13 +101,6 @@ const AdminAirportsPage = () => {
                   <td className="py-3.5 px-4 font-bold text-foreground">{apt.name}</td>
                   <td className="py-3.5 px-4 font-medium text-foreground">{apt.city}</td>
                   <td className="py-3.5 px-4 text-muted">{apt.country}</td>
-                  <td className="py-3.5 px-4 font-mono text-[11px] text-muted">{apt.timezone}</td>
-                  <td className="py-3.5 px-4 font-mono">{apt.terminals}</td>
-                  <td className="py-3.5 px-4">
-                    <Badge variant={apt.status === "ACTIVE" ? "success" : "neutral"} size="sm">
-                      {apt.status}
-                    </Badge>
-                  </td>
                   <td className="py-3.5 px-4 text-right">
                     <button
     onClick={() => setDeleteTarget({ id: apt.id, code: apt.code })}
@@ -186,19 +169,6 @@ const AdminAirportsPage = () => {
     placeholder="e.g. Nigeria"
     {...register("country", { required: "Country is required" })}
     error={errors.country?.message}
-  />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-    label="Timezone *"
-    placeholder="e.g. Africa/Lagos"
-    {...register("timezone", { required: "Timezone is required" })}
-  />
-            <Input
-    label="Terminals Count *"
-    type="number"
-    {...register("terminals", { required: "Required", valueAsNumber: true })}
   />
           </div>
 

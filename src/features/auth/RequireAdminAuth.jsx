@@ -7,23 +7,22 @@ const RequireAdminAuth = ({ children }) => {
   );
   const location = useLocation();
   if (loading) return <FullPageLoader label="Loading operations console..." />;
-  const isStaffOrAdmin =
+  const isAdministrator =
     isAuthenticated &&
     user &&
-    (role === "ADMINISTRATOR" ||
-      role === "STAFF" ||
-      user.role === "ADMINISTRATOR" ||
-      user.role === "STAFF");
-  if (!isStaffOrAdmin) {
+    (role === "ADMINISTRATOR" || user.role === "ADMINISTRATOR");
+  if (!isAdministrator) {
     const isCustomer = user?.role === "CUSTOMER";
     return (
       <Navigate
-        to="/admin/login"
+        to="/login"
         state={{
           from: location,
           error: isCustomer
-            ? `Access Denied: You are currently signed in as a Customer (${user.name}). TigerAirlines Operations requires Staff or Administrator credentials.`
-            : void 0,
+            ? `Access Denied: You are currently signed in as a Customer (${user.name}). Administrator access is required.`
+            : user?.role === "STAFF"
+              ? "Staff accounts use the service desk, not administrator controls."
+              : undefined,
         }}
         replace
       />

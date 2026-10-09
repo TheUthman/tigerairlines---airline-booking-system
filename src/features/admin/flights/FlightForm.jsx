@@ -31,8 +31,6 @@ const getFormValues = (flight) => ({
   ),
   fare: flight?.fare ?? flight?.priceEconomy ?? "",
   businessFare: flight?.businessFare ?? flight?.priceBusiness ?? 0,
-  availableSeats: flight?.availableSeats ?? flight?.availableSeatsEconomy ?? "",
-  totalSeats: flight?.totalSeats ?? "",
   aircraftCode: flight?.aircraftCode || flight?.aircraft || "",
 });
 
@@ -48,14 +46,22 @@ const FlightForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const {
     register,
     handleSubmit,
-    getValues,
+    watch,
+    setError,
     reset,
     formState: { errors },
   } = useForm({ defaultValues: getFormValues(initialData) });
+  const selectedAircraftCode = watch("aircraftCode");
+  const selectedAircraft = aircraft.find(
+    (item) =>
+      item.code?.toUpperCase() === selectedAircraftCode?.trim().toUpperCase(),
+  );
 
   useEffect(() => {
-    reset(getFormValues(initialData));
-  }, [initialData, reset]);
+    if (!catalogLoading) {
+      reset(getFormValues(initialData));
+    }
+  }, [catalogLoading, initialData, reset]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -109,8 +115,33 @@ const FlightForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const errorText = (message) =>
     message ? <p className="mt-1 text-xs text-red-600">{message}</p> : null;
 
+  const submitFlight = handleSubmit((values) => {
+    const capacity = Number(selectedAircraft?.seatCapacity);
+    if (!Number.isInteger(capacity) || capacity < 1) {
+      setError("aircraftCode", {
+        type: "validate",
+        message: "Choose an aircraft from the registered aircraft suggestions.",
+      });
+      return;
+    }
+
+    const previouslyBookedSeats = initialData
+      ? Math.max(
+          0,
+          Number(initialData.totalSeats || 0) -
+            Number(initialData.availableSeats ?? initialData.availableSeatsEconomy ?? 0),
+        )
+      : 0;
+
+    onSubmit({
+      ...values,
+      totalSeats: capacity,
+      availableSeats: Math.max(0, capacity - previouslyBookedSeats),
+    });
+  });
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={submitFlight} className="space-y-5">
       <section>
         <h3 className="mb-3 text-sm font-bold text-foreground">Flight details</h3>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -173,13 +204,27 @@ const FlightForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
           </label>
           <label className={labelClass}>
             Aircraft code
-            <input
-              {...register("aircraftCode")}
-              list="flight-aircraft-codes"
+            <select
+              {...register("aircraftCode", {
+                required: "Select an aircraft.",
+                validate: (value) =>
+                  aircraft.some(
+                    (item) =>
+                      item.code?.toUpperCase() === value?.trim().toUpperCase() &&
+                      Number.isInteger(Number(item.seatCapacity)) &&
+                      Number(item.seatCapacity) > 0,
+                  ) || "Select a registered aircraft with a valid seat capacity.",
+              })}
               className={fieldClass}
-              placeholder="e.g. B737-800"
-              autoComplete="off"
-            />
+            >
+              <option value="">Select aircraft</option>
+              {aircraft.map((item) => (
+                <option key={item.id ?? item.code} value={item.code}>
+                  {item.code} · {item.model} · {item.seatCapacity} seats
+                </option>
+              ))}
+            </select>
+            {errorText(errors.aircraftCode?.message)}
           </label>
         </div>
         <datalist id="flight-airport-codes">
@@ -188,20 +233,6 @@ const FlightForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
               key={airport.id ?? airport.code}
               value={airport.code}
               label={[airport.name, airport.city, airport.country]
-                .filter(Boolean)
-                .join(" · ")}
-            />
-          ))}
-        </datalist>
-        <datalist id="flight-aircraft-codes">
-          {aircraft.map((item) => (
-            <option
-              key={item.id ?? item.code}
-              value={item.code}
-              label={[
-                item.model,
-                item.seatCapacity ? `${item.seatCapacity} seats` : "",
-              ]
                 .filter(Boolean)
                 .join(" · ")}
             />
@@ -231,7 +262,7 @@ const FlightForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
 
       <section>
         <h3 className="mb-3 text-sm font-bold text-foreground">Cabin fares and capacity</h3>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>
             Economy fare
             <input
@@ -266,53 +297,17 @@ const FlightForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
             />
             {errorText(errors.businessFare?.message)}
           </label>
-          <label className={labelClass}>
-            Available seats
-            <input
-              {...register("availableSeats", {
-                required: "Available seats are required.",
-                valueAsNumber: true,
-                min: { value: 0, message: "Must be zero or greater." },
-                validate: {
-                  wholeNumber: (value) =>
-                    Number.isInteger(value) || "Enter a whole number.",
-                  withinCapacity: (value) =>
-                    value <= Number(getValues("totalSeats")) ||
-                    "Available seats cannot exceed total capacity.",
-                },
-              })}
-              className={fieldClass}
-              type="number"
-              min="0"
-              step="1"
-            />
-            {errorText(errors.availableSeats?.message)}
-          </label>
-          <label className={labelClass}>
-            Total seats
-            <input
-              {...register("totalSeats", {
-                required: "Total seat capacity is required.",
-                valueAsNumber: true,
-                min: { value: 1, message: "Capacity must be at least 1." },
-                validate: {
-                  wholeNumber: (value) =>
-                    Number.isInteger(value) || "Enter a whole number.",
-                  enoughCapacity: (value) =>
-                    value >= Number(getValues("availableSeats")) ||
-                    "Total capacity cannot be less than available seats.",
-                },
-              })}
-              className={fieldClass}
-              type="number"
-              min="1"
-              step="1"
-            />
-            {errorText(errors.totalSeats?.message)}
-          </label>
+          <div className={labelClass}>
+            Aircraft capacity
+            <output className={`${fieldClass} flex min-h-11 items-center`}>
+              {selectedAircraft
+                ? `${selectedAircraft.seatCapacity} seats`
+                : "Select an aircraft to load its seat capacity"}
+            </output>
+          </div>
         </div>
         <p className="mt-2 text-[11px] text-muted">
-          Enter separate base fares by cabin. Set Business fare to 0 to keep this flight Economy-only. Seat capacity is shared across cabins.
+          Seat capacity and initial available seats are taken from the selected aircraft. When editing, existing booked seats are preserved. Set Business fare to 0 to keep this flight Economy-only.
         </p>
       </section>
 
@@ -320,7 +315,11 @@ const FlightForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" isLoading={isLoading}>
+        <Button
+          type="submit"
+          isLoading={isLoading}
+          disabled={catalogLoading || aircraft.length === 0}
+        >
           {initialData ? "Save flight" : "Schedule flight"}
         </Button>
       </div>

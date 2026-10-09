@@ -10,7 +10,7 @@ const getPageTitle = (path) => {
   if (path === "/admin") return "Operations dashboard";
   if (path.includes("/flights")) return "Flight operations";
   if (path.includes("/aircraft")) return "Fleet & aircraft";
-  if (path.includes("/airports")) return "Airports & terminals";
+  if (path.includes("/airports")) return "Airports";
   if (path.includes("/passengers")) return "Passenger directory";
   if (path.includes("/bookings")) return "Reservations";
   if (path.includes("/users")) return "User access";
@@ -86,7 +86,7 @@ const AdminLayout = () => {
   const closeMobileSidebar = () => setMobileSidebarOpen(false);
 
   return (
-    <div className="flex min-h-screen bg-background font-sans text-foreground">
+    <div className="flex h-dvh overflow-hidden bg-background font-sans text-foreground">
       <RouteProgress />
       <div className="hidden lg:block">
         <AdminSidebar />
@@ -112,14 +112,17 @@ const AdminLayout = () => {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <AdminTopbar
           title={getPageTitle(location.pathname)}
           onToggleMobileSidebar={() => setMobileSidebarOpen((open) => !open)}
           mobileMenuButtonRef={mobileMenuButtonRef}
           mobileSidebarOpen={mobileSidebarOpen}
         />
-        <main ref={pageContainerRef} className="min-w-0 flex-1 overflow-y-auto">
+        <main
+          ref={pageContainerRef}
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain"
+        >
           <Outlet />
         </main>
       </div>

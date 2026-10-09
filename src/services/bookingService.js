@@ -50,6 +50,38 @@ export const bookingService = {
   },
 
   /**
+   * GET /api/bookings/staff/lookup
+   * Staff-only read-only lookup by PNR. Authorization is enforced by the API gateway.
+   * @param {string} pnr
+   */
+  async getStaffBookingByPnr(pnr) {
+    const res = await apiClient.get("/bookings/staff/lookup", {
+      params: { pnr: pnr.trim().toUpperCase() },
+    });
+    return extractData(res, null);
+  },
+
+  /**
+   * GET /api/bookings/staff/flights/{flightId}/manifest
+   * List booking and check-in status for one flight.
+   * @param {number|string} flightId
+   */
+  async getStaffFlightManifest(flightId) {
+    const res = await apiClient.get(`/bookings/staff/flights/${flightId}/manifest`);
+    return extractData(res, []);
+  },
+
+  /**
+   * POST /api/bookings/{id}/check-in
+   * Persist staff check-in for a confirmed booking.
+   * @param {number|string} id
+   */
+  async checkInStaffBooking(id) {
+    const res = await apiClient.post(`/bookings/${id}/check-in`);
+    return extractData(res, null);
+  },
+
+  /**
    * POST /api/bookings
    * Create a new booking and lock a seat for 10 minutes (Redis lock).
    * Expected payload: { flightId, passengerId, seatNumber, amount, cabinClass }

@@ -28,7 +28,7 @@ const BoardingPass = ({ booking }) => {
     passportNumber: "",
     ticketNumber: "",
   };
-  const isConfirmed = booking?.status === "CONFIRMED";
+  const isConfirmed = ["CONFIRMED", "CHECKED_IN"].includes(booking?.status);
   const origin = getAirportDetails(booking?.origin, "LOS", "Lagos");
   const destination = getAirportDetails(booking?.destination, "ABV", "Abuja");
   return (
@@ -54,9 +54,9 @@ const BoardingPass = ({ booking }) => {
       </div>
 
       {/* Main Stub and Perforated Tear-off layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x-2 divide-dashed divide-border">
+      <div className="boarding-pass-layout grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x-2 divide-dashed divide-border">
         {/* Left Side: Full Ticket Info (8 cols) */}
-        <div className="lg:col-span-8 p-6 md:p-8 space-y-6">
+        <div className="boarding-pass-main lg:col-span-8 p-6 md:p-8 space-y-6">
           {/* Passenger & Booking Code */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-4 border-b border-border">
             <div>
@@ -106,7 +106,7 @@ const BoardingPass = ({ booking }) => {
                 />
               </div>
               <span className="text-[10px] uppercase tracking-wider text-muted">
-                {isConfirmed ? "Confirmed" : booking?.status === "CANCELLED" ? "Cancelled" : "Awaiting confirmation"}
+                {booking?.status === "CHECKED_IN" ? "Checked in" : isConfirmed ? "Confirmed" : booking?.status === "CANCELLED" ? "Cancelled" : "Awaiting confirmation"}
               </span>
             </div>
 
@@ -170,7 +170,7 @@ const BoardingPass = ({ booking }) => {
         </div>
 
         {/* Right Side: Perforated Boarding Stub (4 cols) */}
-        <div className="lg:col-span-4 p-6 bg-background/60 flex flex-col justify-between items-center text-center">
+        <div className="boarding-pass-stub lg:col-span-4 p-6 bg-background/60 flex flex-col justify-between items-center text-center">
           <div className="w-full">
             <p className="text-xs font-black text-primary uppercase tracking-wider">
               {isConfirmed ? "Boarding Stub" : "Reservation Details"}

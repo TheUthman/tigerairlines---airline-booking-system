@@ -388,8 +388,20 @@ const MyTripsPage = () => {
                             : "Booking date unavailable"}
                         </p>
                       </div>
-                      <Badge variant={b.status === "CONFIRMED" ? "success" : "warning"}>
-                        {b.status === "CONFIRMED" ? "Confirmed" : b.status === "PENDING_PAYMENT" ? "Payment pending" : b.status || "Status unavailable"}
+                      <Badge
+                        variant={
+                          ["CONFIRMED", "CHECKED_IN"].includes(b.status)
+                            ? "success"
+                            : "warning"
+                        }
+                      >
+                        {b.status === "CHECKED_IN"
+                          ? "Checked in"
+                          : b.status === "CONFIRMED"
+                            ? "Confirmed"
+                            : b.status === "PENDING_PAYMENT"
+                              ? "Payment pending"
+                              : b.status || "Status unavailable"}
                       </Badge>
                     </div>
 

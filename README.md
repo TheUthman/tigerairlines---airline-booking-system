@@ -72,6 +72,23 @@ VITE_API_BASE_URL="http://localhost:8080/api/v1"
 - `/destinations` – International route network from Paro International Airport.
 - `/offers` – Seasonal promo codes and discounts.
 
+### Staff Service Desk (Role Protected)
+
+Staff and administrators can sign in to `/staff` to access service-desk tools:
+
+- `/staff` – Flight schedule summary and service-desk shortcuts.
+- `/staff/bookings` – Look up booking and flight details by PNR.
+- `/staff/manifest` – Select a flight to view passenger names, booking
+  references, seats, booking statuses, and check-in status/timestamps.
+- `/staff/check-in` – Staff check-in guidance and link to booking lookup.
+- `/staff/flights` – Flight schedules and current flight-status information.
+
+The manifest uses the staff-only booking and passenger endpoints. It displays
+passenger names but does not request or show passenger contact details or
+identity-document data. Staff can mark a confirmed booking checked in from
+booking lookup; check-in is persisted by the backend and recorded with a
+timestamp. A checked-in booking is shown as checked in in the manifest.
+
 ### Admin Operations Console (Role Protected)
 - `/admin/login` – Staff authentication with 1-click Administrator and Flight Dispatcher demo logins.
 - `/admin` – Executive KPI dashboard, revenue graphs, occupancy load factors, and daily booking volume.

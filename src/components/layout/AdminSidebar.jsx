@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Shield,
   X,
+  ClipboardList,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../../app/store";
 import { logout } from "../../features/auth/authSlice";
@@ -42,7 +43,7 @@ const navigationGroups = [
       },
       {
         to: "/admin/airports",
-        label: "Airports & terminals",
+        label: "Airports",
         icon: <Building2 size={18} aria-hidden="true" />,
       },
     ],
@@ -76,11 +77,11 @@ const AdminSidebar = ({ onClose }) => {
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate("/admin/login");
+    navigate("/login");
   };
 
   return (
-    <aside className="flex h-full min-h-screen w-[17rem] shrink-0 flex-col justify-between border-r border-white/10 bg-[#171717] text-white shadow-xl lg:sticky lg:top-0 lg:h-screen lg:min-h-0 lg:shadow-none">
+    <aside className="flex h-full min-h-screen w-[17rem] shrink-0 flex-col justify-between overflow-y-auto border-r border-white/10 bg-[#171717] text-white shadow-xl lg:sticky lg:top-0 lg:h-dvh lg:min-h-0 lg:shadow-none">
       <div>
         <div className="flex h-[4.5rem] items-center justify-between border-b border-white/10 px-5">
           <Link to="/admin" className="flex min-w-0 items-center gap-3" onClick={onClose}>
@@ -157,6 +158,12 @@ const AdminSidebar = ({ onClose }) => {
       </div>
 
       <div className="space-y-1 border-t border-white/10 p-3">
+        <Link
+          to="/staff"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs font-medium text-white/60 transition hover:bg-white/[0.07] hover:text-white focus-visible:outline-white"
+        >
+          <ClipboardList size={15} aria-hidden="true" /> Staff service desk
+        </Link>
         <Link
           to="/"
           onClick={onClose}

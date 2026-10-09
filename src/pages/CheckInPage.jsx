@@ -198,8 +198,28 @@ const CheckInPage = () => {
         {/* Found Booking */}
         {!loading && booking && (
           <div className="space-y-6">
-            {/* If flight departure is too early (>24h away) AND not forced */}
-            {!isWithin24Hours ? (
+            {booking.status === "CHECKED_IN" ? (
+              <div
+                role="status"
+                className="rounded-3xl border border-success/25 bg-success/5 p-8 text-center shadow-sm"
+              >
+                <CheckCircle2
+                  size={36}
+                  className="mx-auto text-success"
+                  aria-hidden="true"
+                />
+                <h2 className="mt-3 text-xl font-black text-foreground">
+                  You are already checked in
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  Staff recorded check-in for booking {booking.pnr}
+                  {booking.checkedInAt
+                    ? ` at ${booking.checkedInAt.replace("T", " ")}`
+                    : ""}
+                  . Please contact the airport desk for your boarding pass.
+                </p>
+              </div>
+            ) : !isWithin24Hours ? (
               <div className="bg-surface rounded-3xl p-8 shadow-sm border border-border text-center space-y-6">
                 <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200">
                   <Clock size={32} />

@@ -195,35 +195,61 @@ const PaymentPage = () => {
       const bookingId = createdBooking.id;
       const pnr = createdBooking.pnr;
 
-      // Step 2: Initiate pending payment record (Payment Service)
+      // Local test mode may complete this payment immediately and publish the
+      // same event as a successful provider webhook.
       const initRes = await paymentService.initiatePayment({
         bookingId,
         amount: grandTotal,
       });
+      const payment = initRes?.data || {};
+      const paymentSucceeded = payment.status === "SUCCEEDED";
 
-      // The payment provider calls the backend webhook. Its event confirms the
-      // booking asynchronously; the browser must not call that protected route.
       const pendingData = {
         ...createdBooking,
         id: bookingId,
         pnr,
-        status: "PENDING_PAYMENT",
-        paymentId: initRes?.data?.id,
-        providerReference: initRes?.data?.providerReference,
+        flightNumber: flight.flightNumber,
+        origin:
+          typeof flight.origin === "string"
+            ? flight.origin
+            : flight.origin?.code || "",
+        destination:
+          typeof flight.destination === "string"
+            ? flight.destination
+            : flight.destination?.code || "",
+        departureDate: flight.departureDate || "",
+        departureTime: flight.departureTime || "",
+        passengerName: `${passenger.firstName || ""} ${passenger.lastName || ""}`.trim(),
+        cabinClass: (cabinClass || "Economy").toUpperCase(),
+        amount: createdBooking.amount ?? grandTotal,
+        status: createdBooking.status || "PENDING_PAYMENT",
+        paymentStatus: payment.status,
+        paymentSimulated: payment.simulated === true,
+        paymentId: payment.id,
+        providerReference: payment.providerReference,
       };
 
-      toast.success(
-        `Payment request created for ₦${grandTotal.toLocaleString("en-NG")}. We will confirm PNR ${pnr} after the provider webhook succeeds.`,
-        "Payment Pending",
-      );
+      if (payment.simulated === true && paymentSucceeded) {
+        toast.success(
+          `Test payment succeeded for ₦${grandTotal.toLocaleString("en-NG")}. No money was charged.`,
+          "Test Payment Successful",
+        );
+      } else {
+        toast.success(
+          `Payment request created for ₦${grandTotal.toLocaleString("en-NG")}. We will confirm PNR ${pnr} after the provider webhook succeeds.`,
+          "Payment Pending",
+        );
+      }
 
       dispatch(setConfirmedBooking(pendingData));
       navigate(`/confirmation?pnr=${pnr}`);
     } catch (err) {
       toast.error(
-        err?.message ||
-          "Payment authorization failed. Please check your card number or expiration.",
-        "Payment Declined",
+        getApiErrorMessage(
+          err,
+          err?.message || "Unable to complete checkout. Please try again.",
+        ),
+        "Checkout Failed",
       );
     } finally {
       setIsProcessing(false);
@@ -262,7 +288,7 @@ const PaymentPage = () => {
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Checkout</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Complete your booking</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">Submit your payment request to reserve this itinerary. Ticket confirmation follows the payment provider&apos;s response.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">Enter your payment details and submit to reserve this itinerary. In local test mode, the payment is simulated; no money is charged.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">

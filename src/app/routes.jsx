@@ -1,8 +1,10 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import CustomerLayout from "../components/layout/CustomerLayout";
 import AdminLayout from "../components/layout/AdminLayout";
+import StaffLayout from "../components/layout/StaffLayout";
 import RequireAdminAuth from "../features/auth/RequireAdminAuth";
+import RequireStaffAuth from "../features/auth/RequireStaffAuth";
 import RequireAuth from "../features/auth/RequireAuth";
 
 const RouteLoading = () => (
@@ -42,7 +44,6 @@ const LoginPage = routePage(() => import("../pages/LoginPage"));
 const RegisterPage = routePage(() => import("../pages/RegisterPage"));
 const ForgotPasswordPage = routePage(() => import("../pages/ForgotPasswordPage"));
 const StyleGuidePage = routePage(() => import("../pages/StyleGuidePage"));
-const AdminLoginPage = routePage(() => import("../pages/AdminLoginPage"));
 const AdminDashboardPage = routePage(() => import("../pages/AdminDashboardPage"));
 const AdminFlightsPage = routePage(() => import("../pages/AdminFlightsPage"));
 const AdminAircraftPage = routePage(() => import("../pages/AdminAircraftPage"));
@@ -50,6 +51,10 @@ const AdminAirportsPage = routePage(() => import("../pages/AdminAirportsPage"));
 const AdminPassengersPage = routePage(() => import("../pages/AdminPassengersPage"));
 const AdminBookingsPage = routePage(() => import("../pages/AdminBookingsPage"));
 const AdminUsersPage = routePage(() => import("../pages/AdminUsersPage"));
+const StaffDashboardPage = routePage(() => import("../pages/StaffDashboardPage"));
+const StaffBookingLookupPage = routePage(() => import("../pages/StaffBookingLookupPage"));
+const StaffManifestPage = routePage(() => import("../pages/StaffManifestPage"));
+const StaffCheckInGuidancePage = routePage(() => import("../pages/StaffCheckInGuidancePage"));
 const AppRoutes = () => {
   return <Routes>
       {
@@ -121,7 +126,22 @@ const AppRoutes = () => {
       {
     /* Admin Login Route */
   }
-      <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+
+      <Route
+        path="/staff"
+        element={
+          <RequireStaffAuth>
+            <StaffLayout />
+          </RequireStaffAuth>
+        }
+      >
+        <Route index element={<StaffDashboardPage />} />
+        <Route path="bookings" element={<StaffBookingLookupPage />} />
+        <Route path="manifest" element={<StaffManifestPage />} />
+        <Route path="flights" element={<FlightStatusPage />} />
+        <Route path="check-in" element={<StaffCheckInGuidancePage />} />
+      </Route>
 
       {
     /* Admin Route Group - Role Guarded (Soliat's scope) */
