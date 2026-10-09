@@ -34,7 +34,7 @@ const Landing = () => {
         cabin: "Economy",
         price: "\u20A645,000",
         image:
-          "https://images.unsplash.com/photo-1612874983384-bf5e47db3d07?w=600&auto=format&fit=crop&q=80",
+          "https://images.unsplash.com/photo-1707406534088-09c4b6958cfa?q=80&w=1933&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       },
       {
         city: "Dubai",
@@ -92,7 +92,7 @@ const Landing = () => {
       description:
         "Africa's most vibrant city \u2014 from Victoria Island skylines to Lekki beach sunsets.",
       image:
-        "https://images.unsplash.com/photo-1618116573990-9db6c93b86a5?w=600&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1648023199223-25d3622bcb13?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       code: "LOS",
     },
     {
@@ -100,7 +100,7 @@ const Landing = () => {
       description:
         "Nigeria's serene capital city, home to Aso Rock and the iconic National Mosque.",
       image:
-        "https://images.unsplash.com/photo-1612874983384-bf5e47db3d07?w=600&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1721642472312-cd30e9bd7cac?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       code: "ABV",
     },
     {
@@ -108,7 +108,7 @@ const Landing = () => {
       description:
         "The Garden City \u2014 gateway to the Niger Delta and hub of Nigeria's oil industry.",
       image:
-        "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=600&auto=format&fit=crop&q=80",
+        "https://plus.unsplash.com/premium_photo-1671089657680-9d86ebc74976?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       code: "PHC",
     },
   ];
@@ -312,7 +312,7 @@ const Landing = () => {
                 Nigeria connects the world
               </span>
               <span className="hero-headline-2 block text-white drop-shadow-sm">
-                Flights from ₦38,000
+                Flights from ₦380,000
               </span>
             </h1>
 
